@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 import org.hamcrest.Matchers;
-import org.jeecgframework.core.junit.AbstractUnitTest;
+import org.jeecgframework.AbstractUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;

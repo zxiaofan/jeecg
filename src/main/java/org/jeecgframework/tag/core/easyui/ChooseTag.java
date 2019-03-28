@@ -20,6 +20,7 @@ import org.jeecgframework.core.util.UUIDGenerator;
  * @version 1.0
  */
 public class ChooseTag extends TagSupport {
+	private static final long serialVersionUID = 1L;
 	protected String hiddenName;
 	protected String textname;//显示文本框字段
 	protected String icon;
@@ -55,16 +56,20 @@ public class ChooseTag extends TagSupport {
 	}
 
 	public StringBuffer end() {
-		String confirm = MutiLangUtil.getMutiLangInstance().getLang("common.confirm");
-		String cancel = MutiLangUtil.getMutiLangInstance().getLang("common.cancel");
+		String confirm = MutiLangUtil.getLang("common.confirm");
+		String cancel = MutiLangUtil.getLang("common.cancel");
 		String methodname = UUIDGenerator.generate().replaceAll("-", "");
 		StringBuffer sb = new StringBuffer();
-		sb.append("<a href=\"#\" class=\"easyui-linkbutton\" plain=\"true\" icon=\"" + icon + "\" onClick=\"choose_"+methodname+ StringUtil.replace("()\">{0}</a>", "{0}", MutiLangUtil.getMutiLangInstance().getLang("common.select", langArg)));
+		sb.append("<a href=\"#\" class=\"easyui-linkbutton\" plain=\"true\" icon=\"" + icon + "\" onClick=\"choose_"+methodname+ StringUtil.replace("()\">{0}</a>", "{0}", MutiLangUtil.getLang("common.select", langArg)));
 		if (isclear&&StringUtil.isNotEmpty(textname)) {
-			sb.append("<a href=\"#\" class=\"easyui-linkbutton\" plain=\"true\" icon=\"icon-redo\" onClick=\"clearAll_"+methodname+ StringUtil.replace("();\">{0}</a>", "{0}", MutiLangUtil.getMutiLangInstance().getLang("common.clear", langArg)));
+			sb.append("<a href=\"#\" class=\"easyui-linkbutton\" plain=\"true\" icon=\"icon-redo\" onClick=\"clearAll_"+methodname+ StringUtil.replace("();\">{0}</a>", "{0}", MutiLangUtil.getLang("common.clear", langArg)));
 		}
 		sb.append("<script type=\"text/javascript\">");
-		sb.append("var windowapi = frameElement.api, W = windowapi.opener;");
+		 //--author：scott-----start----date:20170407--------for: 异常捕获避免js报错-------------
+		sb.append("var windowapi;");
+		sb.append("try{");
+		sb.append("windowapi = frameElement.api, W = windowapi.opener;");
+		sb.append("}catch(e){}");
 		sb.append("function choose_"+methodname+"(){");
 		 //--author：zhoujf-----start----date:20150531--------for: 编辑用户，选择角色,弹出的角色列表页面，默认没选中 标签扩展
 		sb.append("var url = ").append("'").append(url).append("';");
@@ -75,7 +80,9 @@ public class ChooseTag extends TagSupport {
 		sb.append("if(typeof(windowapi) == 'undefined'){");
 			sb.append("$.dialog({");
 			sb.append("content: \'url:\'+url,");
-			sb.append("zIndex: 2100,");
+
+			sb.append("zIndex: getzIndex(),");
+
 			if (title != null) {
 				sb.append("title: \'" + title + "\',");
 			}
@@ -114,7 +121,9 @@ public class ChooseTag extends TagSupport {
 		sb.append("}else{");
 			sb.append("$.dialog({");
 			sb.append("content: \'url:\'+url,");
-			sb.append("zIndex: 2100,");
+
+			sb.append("zIndex: getzIndex(),");
+
 			if (title != null) {
 				sb.append("title: \'" + title + "\',");
 			}

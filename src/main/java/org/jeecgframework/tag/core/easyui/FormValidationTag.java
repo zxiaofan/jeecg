@@ -1,13 +1,17 @@
 package org.jeecgframework.tag.core.easyui;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.jsp.JspException;
 import javax.servlet.jsp.JspWriter;
 import javax.servlet.jsp.tagext.TagSupport;
 
+import org.apache.log4j.Logger;
 import org.jeecgframework.core.enums.SysThemesEnum;
+import org.jeecgframework.core.util.ContextHolderUtils;
 import org.jeecgframework.core.util.StringUtil;
 import org.jeecgframework.core.util.SysThemesUtil;
 
@@ -17,7 +21,9 @@ import org.jeecgframework.core.util.SysThemesUtil;
  *
  */
 public class FormValidationTag extends TagSupport {
+	private static final Logger logger = Logger.getLogger(FormValidationTag.class);
 	private static final long serialVersionUID = 8360534826228271024L;
+	
 	protected String formid = "formobj";// 表单FORM ID
 	protected Boolean refresh = true;
 	protected String callback;// 回调函数
@@ -78,14 +84,16 @@ public class FormValidationTag extends TagSupport {
 	public void setAction(String action) {
 		this.action = action;
 	}
-
 	
 	public int doStartTag() throws JspException {
+		//SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		//long start = System.currentTimeMillis();
+		//logger.debug("=================Form=====doStartTag==========开始时间:" + sdf.format(new Date()) + "==============================");
 		JspWriter out = null;
-		StringBuffer sb = new StringBuffer();
 		try {
 			out = this.pageContext.getOut();
-/*//			if(cssTheme==null){//手工设置值优先
+			StringBuffer sb = new StringBuffer();
+				/*//			if(cssTheme==null){//手工设置值优先
 				Cookie[] cookies = ((HttpServletRequest) super.pageContext
 						.getRequest()).getCookies();
 				for (Cookie cookie : cookies) {
@@ -100,7 +108,9 @@ public class FormValidationTag extends TagSupport {
 			if(cssTheme==null||"default".equals(cssTheme))cssTheme="";*/
 			if ("div".equals(layout)) {
 				sb.append("<div id=\"content\">");
-				sb.append("<div id=\"wrapper\">");
+
+				sb.append("<div id=\"wrapper\" style=\"border-left:1px solid #ddd;\">");
+
 				sb.append("<div id=\"steps\">");
 			}
 			sb.append("<form id=\"" + formid + "\" " );
@@ -112,27 +122,43 @@ public class FormValidationTag extends TagSupport {
 					sb.append(" action=\"" + action + "\" name=\"" + formid + "\" method=\"post\">");
 			if ("btn_sub".equals(btnsub) && dialog)
 				sb.append("<input type=\"hidden\" id=\"" + btnsub + "\" class=\"" + btnsub + "\"/>");
+			
 			out.print(sb.toString());
 			out.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}finally{
+			try {
+				out.clearBuffer();
+			} catch (Exception e2) {
+				e2.printStackTrace();
+			}
 		}
+		//long end = System.currentTimeMillis();
+		//logger.debug("==============Form=====doStartTag=================结束时间:" + sdf.format(new Date()) + "==============================");
+		//logger.debug("===============Form=====doStartTag=================耗时:" + (end - start) + "ms==============================");
+
 		return EVAL_PAGE;
 	}
 
 	
 	public int doEndTag() throws JspException {
-		StringBuffer sb = new StringBuffer();
+		//SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		//long start = System.currentTimeMillis();
+		//logger.debug("=================Form=====doEndTag==========开始时间:" + sdf.format(new Date()) + "==============================");
+		StringBuffer sb = null;
+		String lang = (String)((HttpServletRequest) this.pageContext.getRequest()).getSession().getAttribute("lang");
+
 		JspWriter out = null;
 		try {
-			String lang = (String)((HttpServletRequest) this.pageContext.getRequest()).getSession().getAttribute("lang");
+			out = this.pageContext.getOut();
 			SysThemesEnum sysThemesEnum = null;
 			if(StringUtil.isEmpty(cssTheme)||"null".equals(cssTheme)){
 				sysThemesEnum = SysThemesUtil.getSysTheme((HttpServletRequest) super.pageContext.getRequest());
 			}else{
 				sysThemesEnum = SysThemesEnum.toEnum(cssTheme);
 			}
-			out = this.pageContext.getOut();
+			sb = new StringBuffer();
 			if (layout.equals("div")) {
 
 //				if("metro".equals(cssTheme)){
@@ -160,7 +186,12 @@ public class FormValidationTag extends TagSupport {
 			sb.append(StringUtil.replace("<script type=\"text/javascript\" src=\"plug-in/Validform/js/Validform_v5.3.1_min_{0}.js\"></script>", "{0}", lang));
 			sb.append(StringUtil.replace("<script type=\"text/javascript\" src=\"plug-in/Validform/js/Validform_Datatype_{0}.js\"></script>", "{0}", lang));
 			sb.append(StringUtil.replace("<script type=\"text/javascript\" src=\"plug-in/Validform/js/datatype_{0}.js\"></script>", "{0}", lang));
-			
+
+			if("6".equals(tiptype)){
+				sb.append("<link rel=\"stylesheet\" href=\"plug-in/Validform/css/tiptype.css\" type=\"text/css\"/>");
+				sb.append("<script type=\"text/javascript\" src=\"plug-in/Validform/js/tiptype.js\"></script>");
+			}
+
 			if (usePlugin != null) {
 				if (usePlugin.indexOf("jqtransform") >= 0) {
 					sb.append("<SCRIPT type=\"text/javascript\" src=\"plug-in/Validform/plugin/jqtransform/jquery.jqtransform.js\"></SCRIPT>");
@@ -170,11 +201,45 @@ public class FormValidationTag extends TagSupport {
 					sb.append("<SCRIPT type=\"text/javascript\" src=\"plug-in/Validform/plugin/passwordStrength/passwordStrength-min.js\"></SCRIPT>");
 				}
 			}
+
+			sb.append("<script src=\"plug-in/layer/layer.js\"></script>");
+
 			sb.append("<script type=\"text/javascript\">");
+
+			sb.append("var subDlgIndex = null;");
+
 			sb.append("$(function(){");
 			sb.append("$(\"#" + formid + "\").Validform({");
-			if(this.getTiptype()!=null && !"".equals(this.getTiptype())){
-				sb.append("tiptype:"+this.getTiptype()+",");
+			if(this.getTiptype()!=null && !"".equals(this.getTiptype())){	
+
+				if(tiptype.equals("1")){
+					sb.append("tiptype:function(msg,o,cssctl){");
+					sb.append("if(o.type == 3){");
+					sb.append("layer.open({");
+					sb.append("title:'提示信息',");
+
+					sb.append("content:msg,icon:5,shift:6,btn:false,shade:false,time:5000,");
+
+					sb.append("cancel:function(index){o.obj.focus();layer.close(index);},");
+
+					sb.append("yes:function(index){o.obj.focus();layer.close(index);}");
+
+					sb.append("})");
+					sb.append("}},");
+
+				}else if("6".equals(tiptype)){
+					sb.append("tiptype:function(msg,o,cssctl){");
+					sb.append("if(o.type==3){");
+					sb.append(" ValidationMessage(o.obj,msg);");
+					sb.append("}else{");
+					sb.append("removeMessage(o.obj);");
+					sb.append("}");
+					sb.append("},");
+
+				}else{
+					sb.append("tiptype:"+this.getTiptype()+",");
+				}
+
 			}else{
 				sb.append("tiptype:1,");
 			}
@@ -204,13 +269,26 @@ public class FormValidationTag extends TagSupport {
 			sb.append("btnReset:\"#" + btnreset + "\",");
 			sb.append("ajaxPost:true,");
 			if (beforeSubmit != null) {
-				sb.append("beforeSubmit:function(curform){var tag=false;");
-				sb.append("return " + beforeSubmit );
+				sb.append("beforeSubmit:function(curform){var tag=true;");
+
+				sb.append("tag = " + beforeSubmit );
 				if(beforeSubmit.indexOf("(") < 0){
 					sb.append("(curform);");
+				}else if(!beforeSubmit.endsWith(";")){
+					sb.append(";");
 				}
-				sb.append("},");
+				sb.append("if(tag || tag!=false){");
+
+				submitLoading(sb);
+
+				sb.append("}else{ return false;}");
+
+			}else{
+				sb.append("beforeSubmit:function(curform){var tag=false;");
+				submitLoading(sb);
 			}
+			sb.append("},");
+
 			if (usePlugin != null) {
 				StringBuffer passsb = new StringBuffer();
 				if (usePlugin.indexOf("password") >= 0) {
@@ -251,6 +329,12 @@ public class FormValidationTag extends TagSupport {
 				sb.append("},");
 			}
 			sb.append("callback:function(data){");
+
+			sb.append("if(subDlgIndex && subDlgIndex != null){");
+			sb.append("$('#infoTable-loading').hide();");
+			sb.append("subDlgIndex.close();");
+			sb.append("}");
+
 			if (dialog) {
 				if(callback!=null&&callback.contains("@Override")){//复写默认callback
 					sb.append(callback.replaceAll("@Override", "") + "(data);");
@@ -297,14 +381,40 @@ public class FormValidationTag extends TagSupport {
 			e.printStackTrace();
 		}finally{
 			try {
-
-				sb.setLength(0);
-
 				out.clearBuffer();
+				if(sb!=null){
+					sb.setLength(0); 
+					sb=null;
+				}
 			} catch (Exception e2) {
 			}
 		}
+		
+		//long end = System.currentTimeMillis();
+		//logger.debug("==============Form=====doEndTag=================结束时间:" + sdf.format(new Date()) + "==============================");
+		//logger.debug("===============Form=====doEndTag=================耗时:" + (end - start) + "ms==============================");
 		return EVAL_PAGE;
+	}
+
+	/**
+	 * 增加显示加载图层
+	 * @param sb
+	 */
+	private void submitLoading(StringBuffer sb) {
+		sb.append("subDlgIndex = $.dialog({");
+		sb.append("content: '正在加载中'");
+		sb.append(",zIndex:19910320");
+		sb.append(",lock:true");
+		sb.append(",width:100");
+		sb.append(",height:50");
+		sb.append(",opacity:0.3");
+		sb.append(",title:'提示'");
+		sb.append(",cache:false");
+		sb.append("");
+		sb.append("});");
+		sb.append("var infoTable = subDlgIndex.DOM.t.parent().parent().parent();");
+		sb.append("infoTable.parent().append('<div id=\"infoTable-loading\" style=\"text-align:center;\"><img src=\"plug-in/layer/skin/default/loading-0.gif\"/></div>');");
+		sb.append("infoTable.css('display','none');");
 	}
 
 	public void setUsePlugin(String usePlugin) {
@@ -330,5 +440,25 @@ public class FormValidationTag extends TagSupport {
 	public void setTiptype(String tiptype) {
 		this.tiptype = tiptype;
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("FormValidationTag [formid=").append(formid)
+				.append(", refresh=").append(refresh).append(", callback=")
+				.append(callback).append(", beforeSubmit=")
+				.append(beforeSubmit).append(", btnsub=").append(btnsub)
+				.append(", btnreset=").append(btnreset).append(", layout=")
+				.append(layout).append(", usePlugin=").append(usePlugin)
+				.append(", dialog=").append(dialog).append(", action=")
+				.append(action).append(", tabtitle=").append(tabtitle)
+				.append(", tiptype=").append(tiptype).append(", styleClass=")
+				.append(styleClass).append(", cssTheme=").append(cssTheme)
+				.append(",sysTheme=").append(SysThemesUtil.getSysTheme(ContextHolderUtils.getRequest()).getStyle())
+				.append(",brower_type=").append(ContextHolderUtils.getSession().getAttribute("brower_type"))
+				.append("]");
+		return builder.toString();
+	}
+
 	
 }

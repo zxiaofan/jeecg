@@ -22,8 +22,9 @@ public class TSOperation extends IdEntity implements java.io.Serializable {
 	private Short status;
 	private TSIcon TSIcon = new TSIcon();
 	private TSFunction TSFunction = new TSFunction();
+	private String processnodeId;//流程节点id
 	
-	private Short operationType;
+	private Short operationType;//0隐藏 1禁用
 	
 	@Column(name = "operationtype")
 	public Short getOperationType() {
@@ -89,6 +90,15 @@ public class TSOperation extends IdEntity implements java.io.Serializable {
 		TSFunction = tSFunction;
 	}
 	
+	@Column(name ="PROCESSNODE_ID",nullable=true,length=32)
+	public String getProcessnodeId() {
+		return processnodeId;
+	}
+
+	public void setProcessnodeId(String processnodeId) {
+		this.processnodeId = processnodeId;
+	}
+
 	@Override
     public boolean equals(Object obj) {  
         if(this == obj)  
@@ -103,5 +113,12 @@ public class TSOperation extends IdEntity implements java.io.Serializable {
         }else {
         	return false;  
         }
-    }  
+    } 
+
+	@Override
+	public int hashCode(){
+		String in = super.getId() + operationname;
+		return in.hashCode();
+	}
+
 }

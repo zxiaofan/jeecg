@@ -8,7 +8,7 @@ var no = "No";
 var selectedlanguage = "Please select a language";
 var username = "User Name";
 var password = "Password";
-var foot = "(Recommend IE+, Google browser) Support: Bob 13912756186";	
+var foot = "(Recommend IE+, Google browser)";	
 var confirmdeletethis = "Do you want to delete this ?";
 var confirmdelete = "Confirm";
 var confirmdeletema = "Do you want to delete?";	
@@ -78,6 +78,11 @@ var sqlParse = "SQLParse";
 var extendJson = "extendJson";
 var extendJsonTip = "Please input JSON style，adjust the form attribute";
 /*add-end--Author:luobaoli  Date:20150611 for：增加扩展字段及相应提示的国际化描述*/
+
+/*add-start--Author:Yandong  Date:20180205 for：增加填值规则 */
+var fillRuleCode = "Fill rules";
+/*add-end--Author:luobaoli  Date:20150611 for：增加填值规则*/
+
 
 var indexname = "indexname";
 var indexfield = "indexfield";

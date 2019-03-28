@@ -10,7 +10,8 @@
 		<link rel="stylesheet" href="plug-in/jquery/jquery.contextmenu.css"/>
 		<!-- bootstrap & fontawesome -->
 		<link rel="stylesheet" href="plug-in/ace/css/bootstrap.css" />
-		<link rel="stylesheet" href="plug-in/ace/css/font-awesome.css" />
+		<link href="plug-in/hplus/css/font-awesome.min.css?v=4.4.0" rel="stylesheet">
+		<link rel="stylesheet" href="plug-in/ace/assets/css/font-awesome.min.css" />
 		<link rel="stylesheet" type="text/css" href="plug-in/accordion/css/accordion.css">
 		<!-- text fonts -->
 		<link rel="stylesheet" href="plug-in/ace/css/ace-fonts.css" />
@@ -18,7 +19,7 @@
 		<link rel="stylesheet" href="plug-in/ace/css/jquery-ui.css" />
 		<!-- ace styles -->
 		<link rel="stylesheet" href="plug-in/ace/css/ace.css" class="ace-main-stylesheet" id="main-ace-style" />
-	
+
 		<!--[if lte IE 9]>
 			<link rel="stylesheet" href="plug-in/ace/css/ace-part2.css" class="ace-main-stylesheet" />
 		<![endif]-->
@@ -690,6 +691,7 @@
 			}});
   			
   	}
+
 			function clearLocalstorage(){
 				var storage=$.localStorage;
 				if(!storage)
@@ -698,6 +700,7 @@
 				//bootbox.alert( "浏览器缓存清除成功!");
 				alertTipTop("浏览器缓存清除成功!","10%");
 			}
+
 
 
 	$(document).ready(function(){
@@ -871,6 +874,7 @@
 		<script src="plug-in/ace/js/ace/ace.settings-skin.js"></script>
 		<script src="plug-in/ace/js/ace/ace.widget-on-reload.js"></script>
 		<script src="plug-in/ace/js/ace/ace.searchbox-autocomplete.js"></script>
+		<script type="text/javascript" src="plug-in/jquery-plugs/i18n/jquery.i18n.properties.js"></script>
 		<t:base type="tools"></t:base>
 		<script src="plug-in/jquery-plugs/storage/jquery.storageapi.min.js"></script>
 		<script type="text/javascript" src="plug-in/ace/js/bootstrap-tab.js"></script>

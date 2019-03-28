@@ -5,8 +5,7 @@
 	tabClose();
 	tabCloseEven();
 	// 释放内存
-	$.fn.panel.defaults = $.extend({}, $.fn.panel.defaults, {
-		onBeforeDestroy : function() {
+	$.fn.panel.defaults = $.extend({}, $.fn.panel.defaults, {onBeforeDestroy : function() {
 			var frame = $('iframe', this);
 			if (frame.length > 0) {
 				frame[0].contentWindow.document.write('');
@@ -18,6 +17,14 @@
 			}
 		}
 	});
+	// 释放内存
+	$.fn.panel.defaults = $.extend({},$.fn.panel.defaults,{onBeforeDestroy:function(){  
+	        $(this).find(".combo-f").each(function () {  
+	            var panel = $(this).data().combo.panel;  
+	            panel.panel("destroy");  
+	        });  
+	    }  
+	}); 
 	
 	  $('#maintabs').tabs({ onSelect : function(title) {
 	  	rowid="";
@@ -93,7 +100,7 @@ function addTab(subtitle, url, icon) {
 	if(progress.length){return;}
 	rowid="";
 	$.messager.progress({
-		text : loading,
+		text : '页面加载中....',
 		interval : 200
 	});
 	if (!$('#maintabs').tabs('exists', subtitle)) {
@@ -163,7 +170,7 @@ function addLeftOneTab(subtitle, url, icon) {
 }
 function addmask() {
 	$.messager.progress({
-		text : loading,
+		text : '页面加载中....',
 		interval : 100
 	});
 }

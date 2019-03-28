@@ -13,21 +13,25 @@
 		<property name="templateLoader" ref="templetLoader" />
 		<property name="defaultEncoding" value="UTF-8"></property>
 		<property name="numberFormat" value="0"></property>
+		<!--用于解决前端报空指针问题-->
+		<property name="classicCompatible" value="true"></property>
 	</bean>
 	<!-- Template Context -->
 	<bean id="templetContext" class="org.jeecgframework.web.cgform.engine.TempletContext">
 		<property name="tags">
 			<map>
 				<entry key="DictData" value-ref="dictDataTag" />
+				<entry key="mutiLang" value-ref="mutiLangTag" />
 			</map>
 		</property>
 	</bean>
-	
 	<!-- FreeMarker 自定义word代码生成器 -->
 	<bean id="freemarkerWord" class="freemarker.template.Configuration">
 		<property name="templateLoader" ref="templetLoaderWord" />
 		<property name="defaultEncoding" value="UTF-8"></property>
 		<property name="numberFormat" value="0"></property>
+		<!--用于解决前端报空指针问题-->
+		<property name="classicCompatible" value="true"></property>
 	</bean>
 	<!-- Template Context 自定义word代码生成器 -->
 	<bean id="templetContextWord" class="org.jeecgframework.web.cgform.service.impl.generate.TempletContextWord">

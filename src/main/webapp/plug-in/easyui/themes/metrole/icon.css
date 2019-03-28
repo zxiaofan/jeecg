@@ -81,4 +81,31 @@
 .icon-le-back{
 	background:url('icons/le-back.png') no-repeat center center;
 }
+/*update-begin--author:zhangjiaqiang date:20170301 for:�޶��б�ͼ�� */
+.icon-user-set-o{
+	background:url('icons/user-set-o.png') no-repeat center center;
+}
 
+.icon-user-set{
+	background:url('icons/user-set.png') no-repeat center center;
+}
+/*update-begin--author:LiShaoQing date:20171027 for:高级查询添加右侧历史数据图标  */
+.icon-history-search {
+  	background:url('icons/tree_historySearch.png') no-repeat center center;
+}
+/*update-end--author:LiShaoQing date:20171027 for:高级查询添加右侧历史数据图标  */
+/*update-end--author:zhangjiaqiang date:20170301 for:�޶��б�ͼ�� */
+/*update-begin author:xuelin date:20171116 for:TASK #2404 【平台UI改造】UI样式改造点  5.参考fineui，做下字段过滤功能效果-----*/
+.icon-filter{
+	background:url('icons/filter.png') no-repeat center center;
+}
+/*update-end author:xuelin date:20171116 for:TASK #2404 【平台UI改造】UI样式改造点  5.参考fineui，做下字段过滤功能效果-----*/
+/*update-begin-Author:LiShaoQing date:20180103 for:组织机构添加职务信息图标  */
+.icon-chart-organisation {
+  	background:url('icons/chart_organisation.png') no-repeat center center;
+}
+/*update-end-Author:LiShaoQing date:20180103 for:组织机构添加职务信息图标  */
+
+.icon-caret-down{
+	background:url('icons/fa-caret-down.png') no-repeat center center;
+}

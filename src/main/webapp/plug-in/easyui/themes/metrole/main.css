@@ -23,7 +23,9 @@ input[type="text"] {
 	background-color: #fff;
     border: 1px solid #D7D7D7;
     border-radius: 3PX;
-    height: 30PX;
+    /*update-begin author:scott date:20171113 for:TASK #2411 【样式】online功能查询条件，input上下间距调整*/
+    height: 26px;
+    /*update-end author:scott date:20171113 for:TASK #2411 【样式】online功能查询条件，input上下间距调整*/
     padding:  0 2px;
     line-height: 14PX;
     font-size: 12px;
@@ -31,7 +33,9 @@ input[type="text"] {
 }
 
 select {
-	padding: 6px 0 6px 5px;
+	/*update-begin author:scott date:20171113 for:TASK #2411 【样式】online功能查询条件，select上下间距调整*/
+	padding: 4.5px;
+	/*update-end author:scott date:20171113 for:TASK #2411 【样式】online功能查询条件，select上下间距调整*/
 }
 
 input {
@@ -870,10 +874,11 @@ a:hover {
 
 /* 内容页 */
 .button ,a.l-btn span.l-btn-left {
-	border: 1px solid #cccccc;
-	border-radius: 4px;
-	background-color: #eee;
-	background: -webkit-gradient(linear, 0 0, 0 100%, from(#f7f7f7),
+	border: 1px solid #ccc;
+	/* update-begin--Author:scott  Date:20170714 for：Easyui默认按钮样式优化-------#21b9bb-------#35A0E8----- */
+	border-radius: 3px;
+	background-color: #ffffff;
+	background: -webkit-gradient(linear, 0 0, 0 100%, from(#ffffff),
 		to(#f2f2f2));
 	background: -moz-gradient(linear, 0 0, 0 100%, from(#f7f7f7),
 		to(#f2f2f2));
@@ -881,33 +886,40 @@ a:hover {
 	background: -ms-gradient(linear, 0 0, 0 100%, from(#f7f7f7), to(#f2f2f2));
 	filter: progid:DXImageTransform.Microsoft.gradient(startcolorstr=#f7f7f7,
 		endcolorstr=#f2f2f2, gradientType=0);
+		
 	height: 24px;
-	padding: 0 1px;
+	/* update-begin--Author:scott  Date:20171113 for：列表上方按钮间距宽一些------------------- */
+	padding: 1px 2px;
+	/* update-end--Author:scott  Date:20171113 for：列表上方按钮间距宽一些------------------ */
 	cursor: pointer;
-	line-height: 24px;
+	/* update-begin--Author:scott  Date:20171113 for：列表上方按钮文字上下文字调整------------------- */
+	line-height: 23px;
+	/* update-begin--Author:scott  Date:20171113 for：列表上方按钮文字上下文字调整------------------- */
 	display: inline-block;
-	color: #8f0911;
+	color: #444;
+	/* update-end--Author:scott  Date:20170714 for：Easyui默认按钮样式优化------------------- */
 	/* margin-right:5px; */
 	white-space:nowrap;
 	
 }
 a.l-btn span.l-btn-left .icon-ok{
-	background-image:none;
+	/*background-image:none;*/
 }
 
 .button:hover,a.l-btn:hover span.l-btn-left {
-	border: 1px solid #d1d1d1;
+	border: 1px solid #76B4AC;
 	border-radius: 4px;
-	background-color: #e9e9e9;
-	background: -webkit-gradient(linear, 0 0, 0 100%, from(#e9e9e9),
+	background-color: #f7f5f5;
+	
+	background: -webkit-gradient(linear, 0 0, 0 100%, from(#ffffff),
 		to(#f2f2f2));
-	background: -moz-gradient(linear, 0 0, 0 100%, from(#e9e9e9),
+	background: -moz-gradient(linear, 0 0, 0 100%, from(#f7f7f7),
 		to(#f2f2f2));
 	background: -o-gradient(linear, 0 0, 0 100%, from(#e9e9e9), to(#f2f2f2));
 	background: -ms-gradient(linear, 0 0, 0 100%, from(#e9e9e9), to(#f2f2f2));
-	filter: progid:DXImageTransform.Microsoft.gradient(startcolorstr=#e9e9e9,
+	filter: progid:DXImageTransform.Microsoft.gradient(startcolorstr=#f7f7f7,
 		endcolorstr=#f2f2f2, gradientType=0);
-	color: #666666;
+	color: #007465;
 	cursor: pointer;
 }
 
@@ -980,7 +992,7 @@ a.l-btn span.l-btn-left .icon-ok{
 }
 
 .blueButton {
-	border: 1px solid #2f9df9;
+	border: 0px solid #2f9df9;
 	border-radius: 3px;
 	background-color: #39befb;
 	background: -webkit-gradient(linear, 0 0, 0 100%, from(#39befb),
@@ -995,7 +1007,7 @@ a.l-btn span.l-btn-left .icon-ok{
 }
 
 .blueButton:hover {
-	border: 1px solid #2091fc;
+	border: 0px solid #2091fc;
 	background-color: #6ecdff;
 	background: -webkit-gradient(linear, 0 0, 0 100%, from(#6ecdff),
 		to(#2091fc));
@@ -1009,7 +1021,7 @@ a.l-btn span.l-btn-left .icon-ok{
 }
 
 .blueButton:active {
-	border: 1px solid #2091fc;
+	border: 0px solid #2091fc;
 	background-color: #2091fc;
 	background: -webkit-gradient(linear, 0 0, 0 100%, from(#2091fc),
 		to(#6ecdff));
@@ -5408,11 +5420,22 @@ a.view {
 .layout-panel-north{
 	z-index:1;
 }
+
+/* update-begin--Author:xuelin  Date:20170525 for：TASK #2021 【UI改进】列表上面的按钮 样式冲突，整个页面下移【分页按钮】------------------- */
 .datagrid-pager a.l-btn span.l-btn-left{
-	height:20px;
-	line-height:20px;
-	padding:0px 10px 0px 5px;
+	/* line-height:20px; */
+	/*update-begin--Author:xuelin  Date:20170606 for：TASK #2048 【样式问题】分页按钮变胖--解决冲突：toolbar按钮中文字下沉------------------ */
+	padding:0px 4px 0px 4px;
+	height:22px;	
+	/*update-end--Author:xuelin  Date:20170606 for：TASK #2048 【样式问题】分页按钮变胖--解决冲突：toolbar按钮中文字下沉-------------------- */
+	/* update-begin--Author:xuelin  Date:20170608 for：TASK #2090 【样式】分页样式改造，参考 jqgrid风格-------------------- */	
+	border:0;
+	background: #fff;
+	background-color: #fff;
+	/* update-end--Author:xuelin  Date:20170608 for：TASK #2090 【样式】分页样式改造，参考 jqgrid风格-------------------- */	
 }
+/* update-end--Author:xuelin  Date:20170525 for：TASK #2021 【UI改进】列表上面的按钮 样式冲突，整个页面下移【分页按钮】-------------------- */	
+
 .tooltip {
     border-radius: 5px;
     border-style: solid;

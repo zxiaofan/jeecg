@@ -2,6 +2,13 @@
 <%@include file="/context/mytags.jsp"%>
 <SCRIPT type=text/javascript src="plug-in/clipboard/ZeroClipboard.js"></SCRIPT>
 <t:base type="jquery,easyui,jqueryui-sortable,tools"></t:base>
+<style>
+<!--
+body{
+	overflow: hidden;
+}
+-->
+</style>
 <div>
 <div><input type='radio' name='synMethod' value='normal' checked><t:mutiLang langKey="normal.sync"/></div>
 <div><input type='radio' name='synMethod' value='force'><t:mutiLang langKey="force.sync"/></div>

@@ -44,12 +44,17 @@ $.fn.datagrid.defaults.loadMsg = '加载中....';
  */
 var easyuiErrorFunction = function(XMLHttpRequest) {
 	$.messager.progress('close');
+
 	try{
 		var emsg = XMLHttpRequest.responseText.substring(XMLHttpRequest.responseText.indexOf('错误描述'),XMLHttpRequest.responseText.indexOf('错误信息'));
+		if(emsg==undefined||emsg==''){
+			emsg = "网络异常！";
+		}
 		 $.messager.alert('错误',emsg);
 	}catch(ex){
-		 $.messager.alert('错误',XMLHttpRequest.responseText+'');
+		 $.messager.alert('错误',XMLHttpRequest.responseText==''?'网络异常！':XMLHttpRequest.responseText);
 	}
+
 };
 $.fn.datagrid.defaults.onLoadError = easyuiErrorFunction;
 $.fn.treegrid.defaults.onLoadError = easyuiErrorFunction;
@@ -360,7 +365,7 @@ $.ajaxSetup({
 	type : 'POST',
 	error : function(XMLHttpRequest, textStatus, errorThrown) {
 		$.messager.progress('close');
-		$.messager.alert('错误', XMLHttpRequest.responseText);
+		$.messager.alert('错误', XMLHttpRequest.responseText==''?'网络异常！':XMLHttpRequest.responseText);
 	}
 });
 
@@ -371,8 +376,8 @@ function clearLocalstorage(){
 	storage.removeAll();
 	$.messager.alert('信息', "浏览器缓存清除成功!");
 }
+
 //如果在最外层页面，创建tools对象
 if (window.top == window) {
 	var tools = {msg : "这是一个工具对象，可以把常用属性放到这个对象上。如：在任意页面用top.currDatagri可以获取当前的datagrid"};
 }
-//update-end--Author:钟世云  Date:20150610 for：online支持树配置----------------------

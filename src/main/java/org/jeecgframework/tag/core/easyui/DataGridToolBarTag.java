@@ -21,7 +21,11 @@ public class DataGridToolBarTag extends TagSupport {
 	private String height;
 	private String operationCode;//按钮的操作Code
 	private String langArg;//按钮的操作Code
-	
+
+	private String id;//控件ID
+
+	private boolean inGroup = false;//是否是 更多操作按钮组下面的
+
 	
 	public int doStartTag() throws JspTagException {
 		return EVAL_PAGE;
@@ -31,7 +35,7 @@ public class DataGridToolBarTag extends TagSupport {
 		
 		Tag t = findAncestorWithClass(this, DataGridTag.class);
 		DataGridTag parent = (DataGridTag) t;
-		parent.setToolbar(url, title, icon, exp,onclick, funname,operationCode,width,height);
+		parent.setToolbar(url, title, icon, exp,onclick, funname,operationCode,width,height,id,inGroup);
 		return EVAL_PAGE;
 	}
 	
@@ -70,5 +74,17 @@ public class DataGridToolBarTag extends TagSupport {
 	}
 	public void setLangArg(String langArg) {
 		this.langArg = langArg;
+	}
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public boolean isInGroup() {
+		return inGroup;
+	}
+	public void setInGroup(boolean inGroup) {
+		this.inGroup = inGroup;
 	}
 }

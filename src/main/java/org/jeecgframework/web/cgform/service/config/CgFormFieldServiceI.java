@@ -6,7 +6,6 @@ import java.util.Map;
 import org.jeecgframework.web.cgform.entity.config.CgFormFieldEntity;
 import org.jeecgframework.web.cgform.entity.config.CgFormHeadEntity;
 import org.jeecgframework.web.cgform.exception.BusinessException;
-
 import org.jeecgframework.core.common.service.CommonService;
 
 public interface CgFormFieldServiceI extends CommonService {
@@ -187,4 +186,12 @@ public interface CgFormFieldServiceI extends CommonService {
 	 */
 	public boolean checkTableExist(String tableName);
 
+	public int getByphysiceId(String id);
+
+	/**
+	 * 获取指定physiceId的配置记录数量	 
+	 * @param list
+	 * @return 键值对集合列表
+	 */
+	public List<Map<String,Object>> getPeizhiCountByIds(List<CgFormHeadEntity> list);
 }

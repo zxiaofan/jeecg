@@ -7,16 +7,22 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.persistence.Column;
 
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang.StringUtils;
+import org.hibernate.criterion.Disjunction;
 import org.hibernate.criterion.Restrictions;
 import org.jeecgframework.core.annotation.query.QueryTimeFormat;
 import org.jeecgframework.core.common.hibernate.qbc.CriteriaQuery;
+import org.jeecgframework.core.common.model.common.QueryCondition;
 import org.jeecgframework.core.extend.hqlsearch.parse.ObjectParseUtil;
 import org.jeecgframework.core.extend.hqlsearch.parse.PageValueConvertRuleEnum;
 import org.jeecgframework.core.extend.hqlsearch.parse.vo.HqlRuleEnum;
@@ -25,7 +31,7 @@ import org.jeecgframework.core.util.JeecgDataAutorUtils;
 import org.jeecgframework.core.util.LogUtil;
 import org.jeecgframework.core.util.ResourceUtil;
 import org.jeecgframework.core.util.StringUtil;
-import org.jeecgframework.web.demo.entity.test.QueryCondition;
+import org.jeecgframework.core.util.oConvertUtils;
 import org.jeecgframework.web.system.pojo.base.TSDataRule;
 import org.springframework.util.NumberUtils;
 
@@ -42,8 +48,18 @@ public class HqlGenerateUtil {
 	private static final String END = "_end";
 	private static final String BEGIN = "_begin";
 
-	private static final SimpleDateFormat time = new SimpleDateFormat(
-			"yyyy-MM-dd hh:mm:ss");
+	private static final ThreadLocal<SimpleDateFormat> local = new ThreadLocal<SimpleDateFormat>();
+	private static SimpleDateFormat getTime(){
+		SimpleDateFormat time = local.get();
+		if(time == null){
+			time = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+			local.set(time);
+		}
+		return time;
+	}
+
+	/**自定义sql表达式时rule_column的默认前缀*/
+	private static final String SQL_RULES_COLUMN = "SQL_RULES_COLUMN";
 
 	/**
 	 * 自动生成查询条件HQL 模糊查询 不带有日期组合
@@ -65,23 +81,20 @@ public class HqlGenerateUtil {
 	 * @param parameterMap
 	 *            request参数集合，封装了所有查询信息
 	 */
-	public static void installHql(CriteriaQuery cq, Object searchObj,
-			Map<String, String[]> parameterMap) {
+	public static void installHql(CriteriaQuery cq, Object searchObj,Map<String, String[]> parameterMap) {
 		installHqlJoinAlias(cq, searchObj, getRuleMap(), parameterMap, "");
 		try{
 			String json= null;
 			if(StringUtil.isNotEmpty(cq.getDataGrid().getSqlbuilder())){
 				json =cq.getDataGrid().getSqlbuilder();
-			}else if(parameterMap!=null
-					&&StringUtil.isNotEmpty(parameterMap.get("sqlbuilder"))){
+			}else if(parameterMap!=null&&StringUtil.isNotEmpty(parameterMap.get("sqlbuilder"))){
 				json = parameterMap.get("sqlbuilder")[0];
 			}
 			if(StringUtil.isNotEmpty(json)){
-				List<QueryCondition> list  = JSONHelper.toList(
-						json
-			             , QueryCondition.class);
+				List<QueryCondition> list  = JSONHelper.toList(json , QueryCondition.class);
 				String sql=getSql(list,"",searchObj.getClass());
 				LogUtil.debug("DEBUG sqlbuilder:"+sql);
+				//TODO 此用法在多表关联查询，两个表存在相同字段的时候，会存在问题（hibernate维护的实体关系）
 				cq.add(Restrictions.sqlRestriction(sql));
 			}
 		}catch(Exception e){
@@ -103,34 +116,41 @@ public class HqlGenerateUtil {
 	private static void installHqlJoinAlias(CriteriaQuery cq, Object searchObj,
 			Map<String, TSDataRule> ruleMap,
 			Map<String, String[]> parameterMap, String alias) {
-		PropertyDescriptor origDescriptors[] = PropertyUtils
-				.getPropertyDescriptors(searchObj);
+		PropertyDescriptor origDescriptors[] = PropertyUtils.getPropertyDescriptors(searchObj);
+		///直接拿到rulemap判断有没有key为xxx的直接循环组装cq
+
+		boolean addPreCondition = true;
+		for (String c : ruleMap.keySet()) {
+			if(oConvertUtils.isNotEmpty(c) && c.startsWith(SQL_RULES_COLUMN)){
+				if(addPreCondition){
+					cq.add(Restrictions.sqlRestriction("1=1"));
+					addPreCondition = false;
+				}
+				cq.add(Restrictions.sqlRestriction("("+getSqlRuleValue(ruleMap.get(c).getRuleValue())+")"));
+			}
+		}
+
 		String aliasName, name, type;
 		for (int i = 0; i < origDescriptors.length; i++) {
-			aliasName = (alias.equals("") ? "" : alias + ".")
-					+ origDescriptors[i].getName();
+			aliasName = (alias.equals("") ? "" : alias + ".")+ origDescriptors[i].getName();
 			name = origDescriptors[i].getName();
 			type = origDescriptors[i].getPropertyType().toString();
 			try {
-				if (judgedIsUselessField(name)
-						|| !PropertyUtils.isReadable(searchObj, name)) {
+				if (judgedIsUselessField(name)|| !PropertyUtils.isReadable(searchObj, name)) {
 					continue;
 				}
 				// 如果规则包含这个属性
 				if (ruleMap.containsKey(aliasName)) {
-					addRuleToCriteria(ruleMap.get(aliasName), aliasName,
-							origDescriptors[i].getPropertyType(), cq);
+					addRuleToCriteria(ruleMap.get(aliasName), aliasName,origDescriptors[i].getPropertyType(), cq);
 				}
 
 				// 添加 判断是否有区间值
 				String beginValue = null;
 				String endValue = null;
-				if (parameterMap != null
-						&& parameterMap.containsKey(name + BEGIN)) {
+				if (parameterMap != null&& parameterMap.containsKey(name + BEGIN)) {
 					beginValue = parameterMap.get(name + BEGIN)[0].trim();
 				}
-				if (parameterMap != null
-						&& parameterMap.containsKey(name + END)) {
+				if (parameterMap != null&& parameterMap.containsKey(name + END)) {
 					endValue = parameterMap.get(name + END)[0].trim();
 				}
 
@@ -141,18 +161,33 @@ public class HqlGenerateUtil {
 
 					// for：查询拼装的替换
 					if (value != null && !value.equals("")) {
-						HqlRuleEnum rule = PageValueConvertRuleEnum.convert(value);
 
-//						if(HqlRuleEnum.LIKE.equals(rule)&&(!(value+"").contains("*"))&&!"class java.lang.Integer".contains(type)){
-//							value="*%"+String.valueOf(value.toString())+"%*";
-//						} else {
-//							rule = HqlRuleEnum.EQ;
-//						}
-
+						//checkbox多选查询
+						if (null != value && value.toString().startsWith(",") && value.toString().endsWith(",")) {
+							String[] vals = value.toString().replace(",,", ",").split(",");
+							//Criteria.add(Restrictions.or(cq, Restrictions.or(Restrictions.or(lhs, rhs))));
+							Disjunction dis = Restrictions.disjunction();//替代多个Restrictions.or
+							for (String val : vals) {
+								if (StringUtils.isNotBlank(val)) {
+									dis.add(Restrictions.eq(name, val));
+								}
+							}
+							cq.add(dis);							
+						}else{
 						
-						value = PageValueConvertRuleEnum.replaceValue(rule,
-								value);
-						ObjectParseUtil.addCriteria(cq, aliasName, rule, value);
+							HqlRuleEnum rule = PageValueConvertRuleEnum.convert(value);
+
+	//						if(HqlRuleEnum.LIKE.equals(rule)&&(!(value+"").contains("*"))&&!"class java.lang.Integer".contains(type)){
+	//							value="*%"+String.valueOf(value.toString())+"%*";
+	//						} else {
+	//							rule = HqlRuleEnum.EQ;
+	//						}
+
+							
+							value = PageValueConvertRuleEnum.replaceValue(rule,value);
+							ObjectParseUtil.addCriteria(cq, aliasName, rule, value);
+						}
+
 					} else if (parameterMap != null) {
 
 						Object beginValue_=null , endValue_ =null;
@@ -181,6 +216,13 @@ public class HqlGenerateUtil {
 								beginValue_ = Float.parseFloat(beginValue);
 							if(!"".equals(endValue)&&null!=endValue)
 								endValue_ =Float.parseFloat(endValue);
+
+						}else if ("class java.lang.Double".equals(type)) {
+							if(!"".equals(beginValue)&&null!=beginValue)
+								beginValue_ = Double.parseDouble(beginValue);
+							if(!"".equals(endValue)&&null!=endValue)
+								endValue_ =Double.parseDouble(endValue);
+
 						}else{
 							 beginValue_ = beginValue;
 							 endValue_ = endValue;
@@ -193,8 +235,7 @@ public class HqlGenerateUtil {
 
 					// for：查询拼装的替换
 				} else if ("class java.util.Date".equals(type)) {
-					QueryTimeFormat format = origDescriptors[i].getReadMethod()
-							.getAnnotation(QueryTimeFormat.class);
+					QueryTimeFormat format = origDescriptors[i].getReadMethod().getAnnotation(QueryTimeFormat.class);
 					SimpleDateFormat userDefined = null;
 					if (format != null) {
 						userDefined = new SimpleDateFormat(format.format());
@@ -203,39 +244,33 @@ public class HqlGenerateUtil {
 						if (userDefined != null) {
 							cq.ge(aliasName, userDefined.parse(beginValue));
 						} else if (beginValue.length() == 19) {
-							cq.ge(aliasName, time.parse(beginValue));
+							cq.ge(aliasName, getTime().parse(beginValue));
 						} else if (beginValue.length() == 10) {
-							cq.ge(aliasName,
-									time.parse(beginValue + " 00:00:00"));
+							cq.ge(aliasName,getTime().parse(beginValue + " 00:00:00"));
 						}
 					}
 					if (StringUtils.isNotBlank(endValue)) {
 						if (userDefined != null) {
 							cq.ge(aliasName, userDefined.parse(beginValue));
 						} else if (endValue.length() == 19) {
-							cq.le(aliasName, time.parse(endValue));
+							cq.le(aliasName, getTime().parse(endValue));
 						} else if (endValue.length() == 10) {
-							// 对于"yyyy-MM-dd"格式日期，因时间默认为0，故此添加" 23:23:59"并使用time解析，以方便查询日期时间数据
-							cq.le(aliasName, time.parse(endValue + " 23:23:59"));
+							// 对于"yyyy-MM-dd"格式日期，因时间默认为0，故此添加" 23:59:59"并使用time解析，以方便查询日期时间数据
+							cq.le(aliasName, getTime().parse(endValue + " 23:59:59"));
 						}
 					}
 					if (isNotEmpty(value)) {
 						cq.eq(aliasName, value);
 					}
-				} else if (!StringUtil.isJavaClass(origDescriptors[i]
-						.getPropertyType())) {
-					Object param = PropertyUtils.getSimpleProperty(searchObj,
-							name);
-					if (isHaveRuleData(ruleMap, aliasName) ||( isNotEmpty(param)
-							&& itIsNotAllEmpty(param))) {
+				} else if (!StringUtil.isJavaClass(origDescriptors[i].getPropertyType())) {
+					Object param = PropertyUtils.getSimpleProperty(searchObj,name);
+					if (isHaveRuleData(ruleMap, aliasName) ||( isNotEmpty(param)&& itIsNotAllEmpty(param))) {
 						// 如果是实体类,创建别名,继续创建查询条件
 
 						// for：用户反馈
-						cq.createAlias(aliasName,
-								aliasName.replaceAll("\\.", "_"));
-						// ------------end--Author:JueYue Date:20140521 for：用户反馈
-						installHqlJoinAlias(cq, param, ruleMap, parameterMap,
-								aliasName);
+						cq.createAlias(aliasName,aliasName.replaceAll("\\.", "_"));
+
+						installHqlJoinAlias(cq, param, ruleMap, parameterMap,aliasName);
 					}
 				}
 			} catch (Exception e) {
@@ -243,6 +278,36 @@ public class HqlGenerateUtil {
 			}
 		}
 	}
+
+	private static String getSqlRuleValue(String sqlRule){
+		try {
+			Set<String> varParams = getSqlRuleParams(sqlRule);
+			for(String var:varParams){
+				String tempValue = ResourceUtil.converRuleValue(var);
+				sqlRule = sqlRule.replace("#{"+var+"}",tempValue);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return sqlRule;
+	}
+	
+	private static Set<String> getSqlRuleParams(String sql) {
+		if(oConvertUtils.isEmpty(sql)){
+			return null;
+		}
+		Set<String> varParams = new HashSet<String>();
+		String regex = "\\#\\{\\w+\\}";
+		
+		Pattern p = Pattern.compile(regex);
+		Matcher m = p.matcher(sql);
+		while(m.find()){
+			String var = m.group();
+			varParams.add(var.substring(var.indexOf("{")+1,var.indexOf("}")));
+		}
+		return varParams;
+	}
+
 
 	/**
 	 * 判断数据规则是不是包含这个实体类
@@ -263,15 +328,13 @@ public class HqlGenerateUtil {
 
 	private static void addRuleToCriteria(TSDataRule tsDataRule,
 			String aliasName, Class propertyType, CriteriaQuery cq) {
-		HqlRuleEnum rule = HqlRuleEnum.getByValue(tsDataRule
-				.getRuleConditions());
+		HqlRuleEnum rule = HqlRuleEnum.getByValue(tsDataRule.getRuleConditions());
 		if (rule.equals(HqlRuleEnum.IN)) {
 			String[] values = tsDataRule.getRuleValue().split(",");
 			Object[] objs = new Object[values.length];
 			if (! propertyType.equals(String.class)) {
 				for (int i = 0; i < values.length; i++) {
-					objs[i] = NumberUtils
-							.parseNumber(values[i], propertyType);
+					objs[i] = NumberUtils.parseNumber(values[i], propertyType);
 				}
 			}else {
 				objs = values;
@@ -279,17 +342,15 @@ public class HqlGenerateUtil {
 			ObjectParseUtil.addCriteria(cq, aliasName, rule, objs);
 		} else {
 			if (propertyType.equals(String.class)) {
-				ObjectParseUtil.addCriteria(cq, aliasName, rule,
-						converRuleValue(tsDataRule.getRuleValue()));
+				ObjectParseUtil.addCriteria(cq, aliasName, rule,converRuleValue(tsDataRule.getRuleValue()));
 			} else {
-				ObjectParseUtil.addCriteria(cq, aliasName, rule, NumberUtils
-						.parseNumber(tsDataRule.getRuleValue(), propertyType));
+				ObjectParseUtil.addCriteria(cq, aliasName, rule, NumberUtils.parseNumber(tsDataRule.getRuleValue(), propertyType));
 			}
 		}
 	}
 
 	private static String converRuleValue(String ruleValue) {
-		//---author:jg_xugj----start-----date:20151226--------for：#814 【数据权限】扩展支持写表达式，通过session取值
+
 		//这个方法建议去掉，直接调用ResourceUtil.converRuleValue(ruleValue)
 		String value = ResourceUtil.converRuleValue(ruleValue);
 		return value!= null ? value : ruleValue;
@@ -363,7 +424,13 @@ public class HqlGenerateUtil {
 				return ruleMap;
 			}
 			for (TSDataRule rule : list) {
-				ruleMap.put(rule.getRuleColumn(), rule);
+
+				String column = rule.getRuleColumn();
+				if(oConvertUtils.isEmpty(column)){
+					column = SQL_RULES_COLUMN+rule.getId();
+				}
+				ruleMap.put(column, rule);
+
 			}
 		}
 		return ruleMap;
@@ -379,8 +446,19 @@ public class HqlGenerateUtil {
 	 * @return
 	 */
 	public static String getSql(List<QueryCondition> list,String tab,Class claszz){
+
+		if(list==null || list.size()==0){
+			return "";
+		}
+
 		StringBuffer sb=new StringBuffer();
-		sb.append(" 1=1 ");
+
+		if(list.get(0).getRelation().equals("or")) {
+			sb.append(" 1=0 ");
+		} else {
+			sb.append(" 1=1 ");
+		}
+
 		for(QueryCondition c :list){
 			String column = invokeFindColumn(claszz,c.getField());
 			String type = invokeFindType(claszz,c.getField());
@@ -388,7 +466,6 @@ public class HqlGenerateUtil {
 			c.setField(column);
 			sb.append(tab+c);sb.append("\r\n");
 			if(c.getChildren()!=null){
-				
 				List list1= JSONHelper.toList(c.getChildren(), QueryCondition.class);
 				sb.append(tab);
 				sb.append(c.getRelation()+"( ");
@@ -425,7 +502,16 @@ public class HqlGenerateUtil {
 		String column=null;
 		Field field;
 		try {
-			field = clazz.getDeclaredField(field_name);
+
+			//TODO	只能向上找一级，其他则失败。
+			boolean flag = getSuperDeclaredField(clazz,field_name);
+			if(flag) {
+				field = clazz.getDeclaredField(field_name);
+			} else {
+				Class cla = clazz.getSuperclass();
+				field = cla.getDeclaredField(field_name);
+			}
+
 			PropertyDescriptor pd = new PropertyDescriptor(field.getName(),clazz);  
 	        Method getMethod = pd.getReadMethod();//获得get方法 
 			Column col=getMethod.getAnnotation(Column.class);
@@ -491,7 +577,7 @@ public class HqlGenerateUtil {
 
 						// for：用户反馈
 						cq.createAlias(aliasName, aliasName.replaceAll("\\.", "_"));
-						// ------------end--Author:JueYue Date:20140521 for：用户反馈
+
 						getDataAuthorConditionHql(cq, param);
 					}
 				}
@@ -501,4 +587,24 @@ public class HqlGenerateUtil {
 		}
 		return cq;
 	}
+
+	/**
+	 * 判断有没有field字段
+	 * @param clazz
+	 * @param fieldName
+	 * @return
+	 */
+	public static boolean getSuperDeclaredField(Class clazz,String fieldName) {
+		Field[] fields=clazz.getDeclaredFields();
+		boolean b=false;
+		for (int i = 0; i < fields.length; i++) {
+		    if(fields[i].getName().equals(fieldName))
+		    {
+		        b=true;
+		        break;
+		    }
+		}
+		return b;
+	}
+
 }

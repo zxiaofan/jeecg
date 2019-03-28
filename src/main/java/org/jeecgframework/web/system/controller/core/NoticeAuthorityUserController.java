@@ -16,7 +16,6 @@ import org.jeecgframework.web.system.pojo.base.TSNoticeAuthorityUser;
 import org.jeecgframework.web.system.service.NoticeAuthorityUserServiceI;
 import org.jeecgframework.web.system.service.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -48,13 +47,12 @@ public class NoticeAuthorityUserController extends BaseController {
 
 	/**
 	 * 通知公告用户授权列表 页面跳转
-	 * 
 	 * @return
 	 */
 	@RequestMapping(params = "noticeAuthorityUser")
 	public ModelAndView noticeAuthorityUser(String noticeId,HttpServletRequest request) {
 		request.setAttribute("noticeId", noticeId);
-		return new ModelAndView("system/user/noticeAuthorityUserList");
+		return new ModelAndView("system/notice/noticeAuthorityUserList");
 	}
 
 	/**
@@ -91,10 +89,9 @@ public class NoticeAuthorityUserController extends BaseController {
 	public AjaxJson doDel(TSNoticeAuthorityUser noticeAuthorityUser, HttpServletRequest request) {
 		String message = null;
 		AjaxJson j = new AjaxJson();
-		noticeAuthorityUser = systemService.getEntity(TSNoticeAuthorityUser.class, noticeAuthorityUser.getId());
 		message = "通知公告用户授权删除成功";
 		try{
-			noticeAuthorityUserService.delete(noticeAuthorityUser);
+			this.noticeAuthorityUserService.doDelNoticeAuthorityUser(noticeAuthorityUser);
 			systemService.addLog(message, Globals.Log_Type_DEL, Globals.Log_Leavel_INFO);
 		}catch(Exception e){
 			e.printStackTrace();
@@ -171,16 +168,14 @@ public class NoticeAuthorityUserController extends BaseController {
 		AjaxJson j = new AjaxJson();
 		message = "通知公告用户授权保存成功";
 		try{
-			if(this.noticeAuthorityUserService.checkAuthorityUser(noticeAuthorityUser.getNoticeId(), noticeAuthorityUser.getUser().getId())){
-				message = "该用户已授权，请勿重复操作。";
-			}else{
-				noticeAuthorityUserService.save(noticeAuthorityUser);
-				systemService.addLog(message, Globals.Log_Type_INSERT, Globals.Log_Leavel_INFO);
-			}
+			this.noticeAuthorityUserService.saveNoticeAuthorityUser(noticeAuthorityUser);
+			systemService.addLog(message, Globals.Log_Type_INSERT, Globals.Log_Leavel_INFO);
+		}catch(BusinessException e){
+			e.printStackTrace();
+			message = e.getMessage();
 		}catch(Exception e){
 			e.printStackTrace();
 			message = "通知公告用户授权保存失败";
-			throw new BusinessException(e.getMessage());
 		}
 		j.setMsg(message);
 		return j;

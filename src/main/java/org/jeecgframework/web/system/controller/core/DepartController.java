@@ -1,20 +1,36 @@
 package org.jeecgframework.web.system.controller.core;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.hibernate.criterion.DetachedCriteria;
 import org.hibernate.criterion.Property;
 import org.hibernate.criterion.Restrictions;
 import org.jeecgframework.core.common.controller.BaseController;
+import org.jeecgframework.core.common.dao.jdbc.JdbcDao;
 import org.jeecgframework.core.common.hibernate.qbc.CriteriaQuery;
 import org.jeecgframework.core.common.model.json.AjaxJson;
 import org.jeecgframework.core.common.model.json.ComboTree;
 import org.jeecgframework.core.common.model.json.DataGrid;
 import org.jeecgframework.core.common.model.json.TreeGrid;
 import org.jeecgframework.core.constant.Globals;
-import org.jeecgframework.core.util.*;
+import org.jeecgframework.core.util.ExceptionUtil;
+import org.jeecgframework.core.util.LogUtil;
+import org.jeecgframework.core.util.MutiLangUtil;
+import org.jeecgframework.core.util.MyBeanUtils;
+import org.jeecgframework.core.util.ResourceUtil;
+import org.jeecgframework.core.util.StringUtil;
+import org.jeecgframework.core.util.YouBianCodeUtil;
+import org.jeecgframework.core.util.oConvertUtils;
 import org.jeecgframework.poi.excel.ExcelImportUtil;
 import org.jeecgframework.poi.excel.entity.ExportParams;
 import org.jeecgframework.poi.excel.entity.ImportParams;
@@ -23,27 +39,26 @@ import org.jeecgframework.tag.core.easyui.TagUtil;
 import org.jeecgframework.tag.vo.datatable.SortDirection;
 import org.jeecgframework.tag.vo.easyui.ComboTreeModel;
 import org.jeecgframework.tag.vo.easyui.TreeGridModel;
-import org.jeecgframework.web.system.pojo.base.*;
+import org.jeecgframework.web.system.dao.DepartAuthGroupDao;
+import org.jeecgframework.web.system.pojo.base.TSDepart;
+import org.jeecgframework.web.system.pojo.base.TSDepartExcelView;
+import org.jeecgframework.web.system.pojo.base.TSUser;
+import org.jeecgframework.web.system.pojo.base.TSUserOrg;
 import org.jeecgframework.web.system.service.SystemService;
 import org.jeecgframework.web.system.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 
 
 /**
@@ -62,6 +77,8 @@ public class DepartController extends BaseController {
 	private static final Logger logger = Logger.getLogger(DepartController.class);
 	private UserService userService;
 	private SystemService systemService;
+	@Autowired
+	private DepartAuthGroupDao departAuthGroupDao;
 
 	@Autowired
 	public void setSystemService(SystemService systemService) {
@@ -102,6 +119,30 @@ public class DepartController extends BaseController {
 		TagUtil.datagrid(response, dataGrid);
 	}
 
+		@RequestMapping(params = "delUserOrg")
+		@ResponseBody
+		public AjaxJson delUserOrg(@RequestParam(required=true)String userid,@RequestParam(required=true)String departid) {
+			AjaxJson ajaxJson = new AjaxJson();
+			try {
+				List<TSUserOrg> userOrgList = this.systemService.findByProperty(TSUserOrg.class, "tsUser.id", userid);
+				if(userOrgList.size() == 1){
+					ajaxJson.setSuccess(false);
+					ajaxJson.setMsg("当前用户只包含有当前组织机构关系，不可删除，请切换用户的组织机构关系");
+				}else{
+
+					String sql = "delete from t_s_user_org where user_id = ? and org_id = ?";
+					this.systemService.executeSql(sql,userid,departid);
+
+					ajaxJson.setMsg("成功删除用户对应的组织机构关系");
+				}
+			} catch (Exception e) {
+				LogUtil.log("删除用户对应的组织机构关系失败", e.getMessage());
+				ajaxJson.setSuccess(false);
+				ajaxJson.setMsg(e.getMessage());
+			}
+			return ajaxJson;
+		}
+
 	/**
 	 * 删除部门：
 	 * <ul>
@@ -127,15 +168,23 @@ public class DepartController extends BaseController {
 		depart = systemService.getEntity(TSDepart.class, depart.getId());
         message = MutiLangUtil.paramDelSuccess("common.department");
         if (depart.getTSDeparts().size() == 0) {
-            Long userCount = systemService.getCountForJdbc("select count(1) from t_s_user_org where org_id='" + depart.getId() + "'");
+
+            Long userCount = systemService.getCountForJdbcParam("select count(1) from t_s_user_org where org_id= ?",depart.getId());
+
             if(userCount == 0) { // 组织机构下没有用户时，该组织机构才允许删除。
                 systemService.executeSql("delete from t_s_role_org where org_id=?", depart.getId());
                 systemService.delete(depart);
 
                 systemService.addLog(message, Globals.Log_Type_DEL, Globals.Log_Leavel_INFO);
+            }else{
+
+            	message = MutiLangUtil.getLang("common.department.hasuser");
+
             }
         } else {
-            message = MutiLangUtil.paramDelFail("common.department");
+
+            message = MutiLangUtil.paramDelFail("common.department,!");
+
         }
 
         j.setMsg(message);
@@ -236,10 +285,19 @@ public class DepartController extends BaseController {
 		if (comboTree.getId() == null) {
 			cq.isNull("TSPDepart");
 		}
+
+		cq.addOrder("orgCode", SortDirection.asc);
+
 		cq.add();
 		List<TSDepart> departsList = systemService.getListByCriteriaQuery(cq, false);
 		List<ComboTree> comboTrees = new ArrayList<ComboTree>();
 		ComboTreeModel comboTreeModel = new ComboTreeModel("id", "departname", "TSDeparts");
+
+		TSDepart defaultDepart = new TSDepart();
+		defaultDepart.setId("");
+		defaultDepart.setDepartname("请选择组织机构");
+		departsList.add(0, defaultDepart);
+
 		comboTrees = systemService.ComboTree(departsList, comboTreeModel, null, true);
 		return comboTrees;
 
@@ -268,6 +326,9 @@ public class DepartController extends BaseController {
 		if (treegrid.getId() == null) {
 			cq.isNull("TSPDepart");
 		}
+
+		cq.addOrder("orgCode", SortDirection.asc);
+
 		cq.add();
 		List<TreeGrid> departList =null;
 		departList=systemService.getListByCriteriaQuery(cq, false);
@@ -292,6 +353,7 @@ public class DepartController extends BaseController {
 		fieldMap.put("mobile", "mobile");
 		fieldMap.put("fax", "fax");
 		fieldMap.put("address", "address");
+		fieldMap.put("order", "departOrder");
         treeGridModel.setFieldMap(fieldMap);
         treeGrids = systemService.treegrid(departList, treeGridModel);
 
@@ -329,17 +391,14 @@ public class DepartController extends BaseController {
 	 */
 	@RequestMapping(params = "userDatagrid")
 	public void userDatagrid(TSUser user,HttpServletRequest request, HttpServletResponse response, DataGrid dataGrid) {
-
 		if(user!=null&&user.getDepartid()!=null){
 			user.setDepartid(null);//设置用户的所属部门的查询条件为空；
 		}
-
 		CriteriaQuery cq = new CriteriaQuery(TSUser.class, dataGrid);
 		//查询条件组装器
 		org.jeecgframework.core.extend.hqlsearch.HqlGenerateUtil.installHql(cq, user);
 		String departid = oConvertUtils.getString(request.getParameter("departid"));
 		if (!StringUtil.isEmpty(departid)) {
-
 			DetachedCriteria dc = cq.getDetachedCriteria();
 			DetachedCriteria dcDepart = dc.createCriteria("userOrgList");
 			dcDepart.add(Restrictions.eq("tsDepart.id", departid));
@@ -350,12 +409,43 @@ public class DepartController extends BaseController {
 		}
 		Short[] userstate = new Short[] { Globals.User_Normal, Globals.User_ADMIN };
 		cq.in("status", userstate);
+
+        //cq.eq("deleteFlag", Globals.Delete_Normal);//删除状态，不删除
+        //cq.eq("userType",Globals.USER_TYPE_SYSTEM);//系统用户
+
 		cq.add();
 		this.systemService.getDataGridReturn(cq, true);
 		TagUtil.datagrid(response, dataGrid);
 	}
-	//----
-
+	
+//	/**
+//	 * 成员列表dataGrid - minidao方式（可以查看机构包括下级机构的用户），like 'A01%'
+//	 * @param user
+//	 * @param request
+//	 * @param response
+//	 * @param dataGrid
+//	 */
+//	public void userDatagrid(TSUser user,HttpServletRequest request, HttpServletResponse response, DataGrid dataGrid) {
+//		String departid = oConvertUtils.getString(request.getParameter("departid"));
+//		
+//		//手工转换minidao查询规则
+//		if(oConvertUtils.isNotEmpty(user.getUpdateName())){
+//			user.setUserName(user.getUserName().replace("*","%"));
+//		}
+//		if(oConvertUtils.isNotEmpty(user.getRealName())){
+//			user.setRealName(user.getRealName().replace("*","%"));
+//		}
+//		
+//		if(oConvertUtils.isNotEmpty(departid)){
+//			TSDepart tsdepart = this.systemService.get(TSDepart.class,departid);
+//			MiniDaoPage<TSUser> list = departAuthGroupDao.getUserByDepartCode(dataGrid.getPage(), dataGrid.getRows(),tsdepart.getOrgCode(),user);
+//			dataGrid.setTotal(list.getTotal());
+//			dataGrid.setResults(list.getResults());
+//		}
+//		
+//		TagUtil.datagrid(response, dataGrid);
+//	}
+	
     /**
      * 获取机构树-combotree
      * @param request
@@ -372,6 +462,7 @@ public class DepartController extends BaseController {
         comboTrees = systemService.ComboTree(departsList, comboTreeModel, null, true);
         return comboTrees;
     }
+
 
     /**
      * 添加 用户到组织机构 的页面  跳转
@@ -402,6 +493,10 @@ public class DepartController extends BaseController {
         subCq.add();
 
         cq.add(Property.forName("id").notIn(subCq.getDetachedCriteria()));
+
+        cq.eq("deleteFlag", Globals.Delete_Normal);//删除状态，不删除
+        cq.eq("userType",Globals.USER_TYPE_SYSTEM);//系统用户
+
         cq.add();
 
         this.systemService.getDataGridReturn(cq, true);
@@ -475,6 +570,19 @@ public class DepartController extends BaseController {
         TagUtil.datagrid(response, dataGrid);
     }
 
+    /**
+     * 用户选择机构列表跳转页面(树列表)
+     *
+     * @return
+     */
+    @RequestMapping(params = "orgSelect")
+    public String orgSelect(HttpServletRequest req) {
+    	
+    	req.setAttribute("orgIds", req.getParameter("orgIds"));
+
+        return "system/depart/orgSelect";
+    }
+    
 	/**
 	 * 导入功能跳转
 	 *
@@ -483,6 +591,18 @@ public class DepartController extends BaseController {
 	@RequestMapping(params = "upload")
 	public ModelAndView upload(HttpServletRequest req) {
 		req.setAttribute("controller_name","departController");
+		return new ModelAndView("common/upload/pub_excel_upload");
+	}
+	
+	/**
+	 * 导入功能跳转
+	 *
+	 * @return
+	 */
+	@RequestMapping(params = "uploadDepart")
+	public ModelAndView uploadDepart(HttpServletRequest req) {
+		req.setAttribute("controller_name","departController");
+		req.setAttribute("method_name", "importDepartExcel");
 		return new ModelAndView("common/upload/pub_excel_upload");
 	}
 
@@ -516,7 +636,7 @@ public class DepartController extends BaseController {
 		}*/
 		modelMap.put(NormalExcelConstants.FILE_NAME,"组织机构表");
 		modelMap.put(NormalExcelConstants.CLASS,TSDepart.class);
-		modelMap.put(NormalExcelConstants.PARAMS,new ExportParams("组织机构表列表", "导出人:"+ ResourceUtil.getSessionUserName().getRealName(),
+		modelMap.put(NormalExcelConstants.PARAMS,new ExportParams("组织机构表列表", "导出人:"+ ResourceUtil.getSessionUser().getRealName(),
 				"导出信息"));
 		modelMap.put(NormalExcelConstants.DATA_LIST,tsDeparts);
 		return NormalExcelConstants.JEECG_EXCEL_VIEW;
@@ -532,12 +652,116 @@ public class DepartController extends BaseController {
 			, DataGrid dataGrid,ModelMap modelMap) {
 		modelMap.put(NormalExcelConstants.FILE_NAME,"组织机构表");
 		modelMap.put(NormalExcelConstants.CLASS,TSDepart.class);
-		modelMap.put(NormalExcelConstants.PARAMS,new ExportParams("组织机构表列表", "导出人:"+ResourceUtil.getSessionUserName().getRealName(),
+		modelMap.put(NormalExcelConstants.PARAMS,new ExportParams("组织机构表列表", "导出人:"+ResourceUtil.getSessionUser().getRealName(),
 				"导出信息"));
 		modelMap.put(NormalExcelConstants.DATA_LIST,new ArrayList());
 		return NormalExcelConstants.JEECG_EXCEL_VIEW;
 	}
 
+	private synchronized String getMaxLocalCode(String parentCode){
+		if(oConvertUtils.isEmpty(parentCode)){
+			parentCode = "";
+		}
+		int localCodeLength = parentCode.length() + YouBianCodeUtil.zhanweiLength;
+		StringBuilder sb = new StringBuilder();
+		sb.append("SELECT org_code FROM t_s_depart");
+
+		if(ResourceUtil.getJdbcUrl().indexOf(JdbcDao.DATABSE_TYPE_SQLSERVER)!=-1){
+			sb.append(" where LEN(org_code) = ").append(localCodeLength);
+		}else{
+			sb.append(" where LENGTH(org_code) = ").append(localCodeLength);
+		}
+
+		if(oConvertUtils.isNotEmpty(parentCode)){
+			sb.append(" and  org_code like '").append(parentCode).append("%'");
+		}
+
+		sb.append(" ORDER BY org_code DESC");
+		List<Map<String, Object>> objMapList = systemService.findForJdbc(sb.toString(), 1, 1);
+		String returnCode = null;
+		if(objMapList!=null && objMapList.size()>0){
+			returnCode = (String)objMapList.get(0).get("org_code");
+		}
+
+		return returnCode;
+	}
+	
+	@RequestMapping(params = "importDepartExcel", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxJson importDepartExcel(HttpServletRequest request, HttpServletResponse response) {
+		AjaxJson j = new AjaxJson();
+		MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
+		Map<String, MultipartFile> fileMap = multipartRequest.getFileMap();
+		for (Map.Entry<String, MultipartFile> entity : fileMap.entrySet()) {
+			MultipartFile file = entity.getValue();// 获取上传文件对象
+			ImportParams params = new ImportParams();
+			try {
+				List<TSDepartExcelView> list = ExcelImportUtil.importExcel(file.getInputStream(),TSDepartExcelView.class,params);
+				Map<String,TSDepart> departMap=new HashMap<String, TSDepart>();
+				saveDepartExcelView(list,departMap);
+				if(departMap.isEmpty()){
+					j.setMsg("必须有一个或一个以上的祖先节点！");
+					return j;
+				}
+				j.setMsg("文件导入成功！");
+			} catch (Exception e) {
+				j.setMsg("文件导入失败！");
+				logger.error(ExceptionUtil.getExceptionMessage(e));
+			}finally{
+				try {
+					file.getInputStream().close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return j;
+	}
+	
+	private void saveDepartExcelView(List<TSDepartExcelView> list,Map<String,TSDepart> departMap){
+		Iterator<TSDepartExcelView> iterator = list.iterator();
+		while(iterator.hasNext()){
+			TSDepartExcelView next = iterator.next();
+			String parentId=next.getParentId();
+			if(StringUtil.isEmpty(parentId)){
+				TSDepart depart=generateDepart(next,null);
+				departMap.put(next.getId(), depart);
+				iterator.remove();
+			}else if(departMap.containsKey(parentId)){
+				TSDepart parentDepart=departMap.get(parentId);
+				TSDepart depart=generateDepart(next,parentDepart);
+				departMap.put(next.getId(), depart);
+				iterator.remove();
+			}
+		}
+		if(departMap.isEmpty()){
+			return;
+		}
+		if(!list.isEmpty())saveDepartExcelView(list,departMap);
+	}
+	
+	private TSDepart generateDepart(TSDepartExcelView next,TSDepart parentDepart){
+		TSDepart depart=new TSDepart();
+		depart.setDepartname(next.getDepartName());
+		depart.setDescription(next.getDescription());
+		depart.setOrgType(next.getOrgType());
+		depart.setAddress(next.getAddress());
+		depart.setMobile(next.getMobile());
+		depart.setFax(next.getFax());
+		if(parentDepart!=null){
+			String localMaxCode  = getMaxLocalCode(parentDepart.getOrgCode());
+			depart.setOrgCode(YouBianCodeUtil.getSubYouBianCode(parentDepart.getOrgCode(), localMaxCode));
+			depart.setTSPDepart(parentDepart);
+		}else{
+			String localMaxCode  = getMaxLocalCode(null);
+			depart.setOrgCode(YouBianCodeUtil.getNextYouBianCode(localMaxCode));
+		}
+		this.systemService.save(depart);
+		return depart;
+	}
+
+	
+	
 	@SuppressWarnings("unchecked")
 	@RequestMapping(params = "importExcel", method = RequestMethod.POST)
 	@ResponseBody
@@ -562,7 +786,20 @@ public class DepartController extends BaseController {
 						MyBeanUtils.copyBeanNotNull2Bean(tsDepart,depart);
 						systemService.saveOrUpdate(depart);
 					}else {
-						tsDepart.setOrgType(tsDepart.getOrgType().substring(0,1));
+
+						if(oConvertUtils.isNotEmpty(tsDepart.getOrgType())){
+							String orgType = tsDepart.getOrgType().substring(0,1);
+							if("1".equals(orgType) || "2".equals(orgType) || "3".equals(orgType)){
+								tsDepart.setOrgType(orgType);
+							}else{
+								j.setMsg("机构类型编码错误");
+								return j;
+							}
+						}else{
+							j.setMsg("机构类型编码不能为空");
+							return j;
+						}
+
 						//TSTypegroup ts = systemService.findByProperty(TSTypegroup.class,"typegroupcode","orgtype").get(0);
 						//List<TSType> types = systemService.findByProperty(TSType.class,"id",ts.getId());
 						//int len = 3;//每级组织机构得长度
@@ -572,11 +809,17 @@ public class DepartController extends BaseController {
 						}*/
 						String orgcode = tsDepart.getOrgCode();
 						String parentOrgCode = orgcode.substring(0,orgcode.length()-3);
-						TSDepart parentDept = (TSDepart) systemService.getSession().createSQLQuery("select * from t_s_depart where ORG_CODE = :parentOrgCode")
+
+						List<TSDepart> parentList = systemService.getSession().createSQLQuery("select * from t_s_depart where ORG_CODE = :parentOrgCode")
 								.addEntity(TSDepart.class)
 								.setString("parentOrgCode",parentOrgCode)
-								.list().get(0);
-						tsDepart.setTSPDepart(parentDept);
+								.list();
+						if(parentList.size() > 0){
+							TSDepart parentDept =  parentList.get(0);
+							tsDepart.setTSPDepart(parentDept);
+						}
+						tsDepart.setDepartOrder("0");
+
 						systemService.save(tsDepart);
 					}
 				}
@@ -633,7 +876,9 @@ public class DepartController extends BaseController {
 				map = new HashMap<String,Object>();
 				map.put("id", depart.getId());
 				map.put("name", depart.getDepartname());
-				
+
+				map.put("code",depart.getOrgCode());
+
 				if(ids.length>0){
 					for(String id:ids){
 						if(id.equals(depart.getId())){

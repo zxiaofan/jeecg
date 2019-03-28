@@ -1,3 +1,4 @@
+<#include "../../ui/excel.ftl"/>
 <#if packageStyle == "service">
 package ${bussiPackage}.${entityPackage}.entity;
 <#else>
@@ -40,7 +41,9 @@ public class ${entityName}Entity implements java.io.Serializable {
 	<#list columns as po>
 	/**${po.content}*/
 	<#if po.isShow != 'N'>
-	@Excel(name="${po.content}"<#if po.type == "java.util.Date">,format = "yyyy-MM-dd"</#if>)
+	<#--update-begin--Author:taoYan  Date:20170807 for：TASK #3021 【代码生成器 - 陶炎】popup配置影响了导出excel功能 -->
+    <@excel po = po/>
+	<#--update-end--Author:taoYan  Date:20170807 for：TASK #3021 【代码生成器 - 陶炎】popup配置影响了导出excel功能 -->
 	</#if>
 	<#--update-start--Author:luobaoli  Date:20150609 for：将数据库中blob类型对应为byte[]-->
 	private <#if po.type=='java.sql.Blob'>byte[]<#else>${po.type}</#if> ${po.fieldName};

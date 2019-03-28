@@ -40,6 +40,7 @@ import java.util.*;
  * @author  张代浩
  *
  */
+@SuppressWarnings("unchecked")
 @Repository
 public class CommonDao extends GenericBaseCommonDao implements ICommonDao, IGenericBaseCommonDao {
 
@@ -66,6 +67,23 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao, IGene
 			}
 		}
 
+		return null;
+	}
+	
+	/**
+	 * 检查用户是否存在
+	 * */
+	public TSUser findUserByAccountAndPassword(String username,String inpassword) {
+		String password = PasswordUtil.encrypt(username, inpassword, PasswordUtil.getStaticSalt());
+		String query = "from TSUser u where u.userName = :username and u.password=:passowrd";
+		Query queryObject = getSession().createQuery(query);
+		queryObject.setParameter("username", username);
+		queryObject.setParameter("passowrd", password);
+		@SuppressWarnings("unchecked")
+		List<TSUser> users = queryObject.list();
+		if (users != null && users.size() > 0) {
+			return users.get(0);
+		}
 		return null;
 	}
 	
@@ -239,11 +257,15 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao, IGene
 //					SwfToolsUtil.convert2SWF(savePath);
 //				}
 //				FileCopyUtils.copy(mf.getBytes(), savefile);
-				if (uploadFile.getSwfpath() != null) {
+
+				//默认上传文件是否转换为swf，实现在线预览功能开关
+				String globalSwfTransformFlag = ResourceUtil.getConfigByName("swf.transform.flag");
+				if ( "true".equals(globalSwfTransformFlag) && uploadFile.getSwfpath() != null) {
 					// 转SWF
 					reflectHelper.setMethodValue(uploadFile.getSwfpath(), path + FileUtils.getFilePrefix(myfilename) + ".swf");
 					SwfToolsUtil.convert2SWF(savePath);
 				}
+
 
 			}
 		} catch (Exception e1) {
@@ -278,20 +300,21 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao, IGene
 		String ctxPath = request.getSession().getServletContext().getRealPath("/");
 		String downLoadPath = "";
 		long fileLength = 0;
-		if (uploadFile.getRealPath() != null&&uploadFile.getContent() == null) {
-			downLoadPath = ctxPath + uploadFile.getRealPath();
-			fileLength = new File(downLoadPath).length();
-			try {
-				bis = new BufferedInputStream(new FileInputStream(downLoadPath));
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			}
-		} else {
-			if (uploadFile.getContent() != null)
-				bis = new ByteArrayInputStream(uploadFile.getContent());
-			fileLength = uploadFile.getContent().length;
-		}
 		try {
+			if (uploadFile.getRealPath() != null&&uploadFile.getContent() == null) {
+				downLoadPath = ctxPath + uploadFile.getRealPath();
+				fileLength = new File(downLoadPath).length();
+				try {
+					bis = new BufferedInputStream(new FileInputStream(downLoadPath));
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				}
+			} else {
+				if (uploadFile.getContent() != null)
+					bis = new ByteArrayInputStream(uploadFile.getContent());
+					fileLength = uploadFile.getContent().length;
+			}
+		
 			if (!uploadFile.isView() && uploadFile.getExtend() != null) {
 				if (uploadFile.getExtend().equals("text")) {
 					response.setContentType("text/plain;");
@@ -528,11 +551,9 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao, IGene
 				for (Object inobj : in) {
 					ReflectHelper reflectHelper2 = new ReflectHelper(inobj);
 					String inId = oConvertUtils.getString(reflectHelper2.getMethodValue(comboTreeModel.getIdField()));
-
                     if (inId.equals(id)) {
 						tree.setChecked(true);
 					}
-
 				}
 			}
 		}
@@ -562,7 +583,7 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao, IGene
 	/**
 	 * 构建树形数据表
 	 */
-	public List<TreeGrid> treegrid(List all, TreeGridModel treeGridModel) {
+	public List<TreeGrid> treegrid(List<?> all, TreeGridModel treeGridModel) {
 		List<TreeGrid> treegrid = new ArrayList<TreeGrid>();
 		for (Object obj : all) {
 			ReflectHelper reflectHelper = new ReflectHelper(obj);
@@ -651,10 +672,14 @@ public class CommonDao extends GenericBaseCommonDao implements ICommonDao, IGene
                     tg.getFieldMap().put(entry.getKey(), fieldValue);
                 }
             }
-
             if (treeGridModel.getFunctionType() != null) {
             	String functionType = oConvertUtils.getString(reflectHelper.getMethodValue(treeGridModel.getFunctionType()));
             	tg.setFunctionType(functionType);
+            }
+
+            if(treeGridModel.getIconStyle() != null){
+            	String iconStyle = oConvertUtils.getString(reflectHelper.getMethodValue(treeGridModel.getIconStyle()));
+            	tg.setIconStyle(iconStyle);
             }
 
 			treegrid.add(tg);

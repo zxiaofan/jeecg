@@ -1,77 +1,100 @@
 package org.jeecgframework.web.system.controller.core;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.SocketException;
+import java.net.URLEncoder;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPReply;
 import org.apache.log4j.Logger;
 import org.jeecgframework.core.common.controller.BaseController;
 import org.jeecgframework.core.common.dao.jdbc.JdbcDao;
 import org.jeecgframework.core.common.hibernate.qbc.CriteriaQuery;
-import org.jeecgframework.core.common.model.common.UploadFile;
 import org.jeecgframework.core.common.model.json.AjaxJson;
 import org.jeecgframework.core.common.model.json.ComboTree;
 import org.jeecgframework.core.common.model.json.DataGrid;
 import org.jeecgframework.core.common.model.json.TreeGrid;
 import org.jeecgframework.core.common.model.json.ValidForm;
 import org.jeecgframework.core.constant.Globals;
+import org.jeecgframework.core.enums.StoreUploadFilePathEnum;
 import org.jeecgframework.core.extend.hqlsearch.parse.ObjectParseUtil;
 import org.jeecgframework.core.extend.hqlsearch.parse.PageValueConvertRuleEnum;
 import org.jeecgframework.core.extend.hqlsearch.parse.vo.HqlRuleEnum;
-import org.jeecgframework.core.util.DateUtils;
+import org.jeecgframework.core.extend.swftools.SwfToolsUtil;
+import org.jeecgframework.core.util.FileUtils;
 import org.jeecgframework.core.util.JSONHelper;
 import org.jeecgframework.core.util.ListUtils;
 import org.jeecgframework.core.util.MutiLangSqlCriteriaUtil;
 import org.jeecgframework.core.util.MutiLangUtil;
-import org.jeecgframework.core.util.MyClassLoader;
+import org.jeecgframework.core.util.PropertiesUtil;
 import org.jeecgframework.core.util.ResourceUtil;
 import org.jeecgframework.core.util.SetListSort;
 import org.jeecgframework.core.util.StringUtil;
+import org.jeecgframework.core.util.UrlCheckUtil;
 import org.jeecgframework.core.util.YouBianCodeUtil;
 import org.jeecgframework.core.util.oConvertUtils;
 import org.jeecgframework.tag.core.easyui.TagUtil;
+import org.jeecgframework.tag.vo.datatable.SortDirection;
 import org.jeecgframework.tag.vo.easyui.ComboTreeModel;
 import org.jeecgframework.tag.vo.easyui.TreeGridModel;
+import org.jeecgframework.web.cgform.exception.BusinessException;
 import org.jeecgframework.web.system.manager.ClientManager;
 import org.jeecgframework.web.system.manager.ClientSort;
 import org.jeecgframework.web.system.pojo.base.Client;
 import org.jeecgframework.web.system.pojo.base.DataLogDiff;
+import org.jeecgframework.web.system.pojo.base.DictEntity;
 import org.jeecgframework.web.system.pojo.base.TSDatalogEntity;
 import org.jeecgframework.web.system.pojo.base.TSDepart;
-import org.jeecgframework.web.system.pojo.base.TSDocument;
 import org.jeecgframework.web.system.pojo.base.TSFunction;
 import org.jeecgframework.web.system.pojo.base.TSRole;
 import org.jeecgframework.web.system.pojo.base.TSRoleFunction;
 import org.jeecgframework.web.system.pojo.base.TSType;
 import org.jeecgframework.web.system.pojo.base.TSTypegroup;
-import org.jeecgframework.web.system.pojo.base.TSVersion;
 import org.jeecgframework.web.system.service.MutiLangServiceI;
 import org.jeecgframework.web.system.service.SystemService;
 import org.jeecgframework.web.system.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+
 /**
- * 类型字段处理类
- *
+ * 系统控制器
  * @author 张代浩
  *
  */
-//@Scope("prototype")
 @Controller
 @RequestMapping("/systemController")
 public class SystemController extends BaseController {
@@ -79,6 +102,8 @@ public class SystemController extends BaseController {
 	private UserService userService;
 	private SystemService systemService;
 	private MutiLangServiceI mutiLangService;
+	@Resource
+	private ClientManager clientManager;
 
 
 	@Autowired
@@ -103,6 +128,60 @@ public class SystemController extends BaseController {
 	public ModelAndView druid() {
 		return new ModelAndView(new RedirectView("druid/index.html"));
 	}
+
+	@RequestMapping(params = "typeListJson")
+	@ResponseBody
+	public AjaxJson typeListJson(@RequestParam(required=true)String typeGroupName,HttpServletRequest request) {
+		AjaxJson ajaxJson = new AjaxJson();
+		JSONArray typeArray = new JSONArray();
+		try {
+			String dicTable = request.getParameter("dicTable");
+			if(oConvertUtils.isEmpty(dicTable)){
+				List<TSType> typeList = ResourceUtil.getCacheTypes(typeGroupName.toLowerCase());
+				JSONObject headJson = new JSONObject();
+				headJson.put("typecode", "");
+				headJson.put("typename", "");
+				typeArray.add(headJson);
+				if(typeList != null && !typeList.isEmpty()){
+					for (TSType type : typeList) {
+						JSONObject typeJson = new JSONObject();
+						typeJson.put("typecode", type.getTypecode());
+
+						String typename = type.getTypename();
+						if(MutiLangUtil.existLangKey(typename)){
+							typename = MutiLangUtil.doMutiLang(typename,"");
+						}
+						typeJson.put("typename",typename );
+
+						typeArray.add(typeJson);
+					}
+				}
+			}else{
+				String dicText = request.getParameter("dicText");
+				List<DictEntity> list = systemService.queryDict(dicTable, typeGroupName, dicText);
+				if(list!=null && list.size()>0){
+					for (DictEntity type : list) {
+						JSONObject typeJson = new JSONObject();
+						typeJson.put("typecode", type.getTypecode());
+						String typename = type.getTypename();
+						if(MutiLangUtil.existLangKey(typename)){
+							typename = MutiLangUtil.doMutiLang(typename,"");
+						}
+						typeJson.put("typename",typename );
+						typeArray.add(typeJson);
+					}
+				}
+			}
+			ajaxJson.setObj(typeArray);
+		} catch (Exception e) {
+			logger.debug(e.getMessage());
+			ajaxJson.setSuccess(false);
+			ajaxJson.setMsg(e.getMessage());
+		}
+		return ajaxJson;
+	}
+
+	
 	/**
 	 * 类型字典列表页面跳转
 	 *
@@ -145,9 +224,9 @@ public class SystemController extends BaseController {
 	@RequestMapping(params = "typeGroupGrid")
 	public void typeGroupGrid(HttpServletRequest request, HttpServletResponse response, DataGrid dataGrid, TSTypegroup typegroup) {
 		CriteriaQuery cq = new CriteriaQuery(TSTypegroup.class, dataGrid);
-//        add-start--Author:zhangguoming  Date:20140929 for：多语言条件添加
+
         String typegroupname = request.getParameter("typegroupname");
-        if(typegroupname != null && typegroupname.trim().length() > 0) {
+        if(oConvertUtils.isNotEmpty(typegroupname)) {
             typegroupname = typegroupname.trim();
             List<String> typegroupnameKeyList = systemService.findByQueryString("select typegroupname from TSTypegroup");
             if(typegroupname.lastIndexOf("*")==-1){
@@ -155,15 +234,19 @@ public class SystemController extends BaseController {
             }
             MutiLangSqlCriteriaUtil.assembleCondition(typegroupnameKeyList, cq, "typegroupname", typegroupname);
         }
+        
+        String typegroupcode = request.getParameter("typegroupcode");
+        if(oConvertUtils.isNotEmpty(typegroupcode)) {
+        	 cq.eq("typegroupcode", typegroupcode);
+        	 cq.add();
+        }
 		this.systemService.getDataGridReturn(cq, true);
         MutiLangUtil.setMutiLangValueForList(dataGrid.getResults(), "typegroupname");
-//        add-end--Author:zhangguoming  Date:20140929 for：多语言条件添加
+
 
 		TagUtil.datagrid(response, dataGrid);
 	}
 
-
-	//add-start--Author:luobaoli  Date:20150607 for：增加表单分类树
 	/**
 	 *
 	 * @param request
@@ -175,10 +258,10 @@ public class SystemController extends BaseController {
 	@ResponseBody
 	public List<ComboTree> formTree(HttpServletRequest request,final ComboTree rootCombotree) {
 		String typegroupCode = request.getParameter("typegroupCode");
-		TSTypegroup group = ResourceUtil.allTypeGroups.get(typegroupCode.toLowerCase());
+		TSTypegroup group = ResourceUtil.getCacheTypeGroup(typegroupCode.toLowerCase());
 		List<ComboTree> comboTrees = new ArrayList<ComboTree>();
 
-		for(TSType tsType : ResourceUtil.allTypes.get(typegroupCode.toLowerCase())){
+		for(TSType tsType : ResourceUtil.getCacheTypes(typegroupCode.toLowerCase())){
 			ComboTree combotree = new ComboTree();
 			combotree.setId(tsType.getTypecode());
 			combotree.setText(tsType.getTypename());
@@ -191,7 +274,7 @@ public class SystemController extends BaseController {
 
 		return new ArrayList<ComboTree>(){{add(rootCombotree);}};
 	}
-	//add-end--Author:luobaoli  Date:20150607 for：增加表单分类树
+
 
 	/**
 	 * easyuiAJAX请求数据
@@ -208,16 +291,18 @@ public class SystemController extends BaseController {
 		CriteriaQuery cq = new CriteriaQuery(TSType.class, dataGrid);
 		cq.eq("TSTypegroup.id", typegroupid);
 		cq.like("typename", typename);
+
+		cq.addOrder("orderNum", SortDirection.asc);
+
 		cq.add();
 		this.systemService.getDataGridReturn(cq, true);
-        // add-start--Author:zhangguoming  Date:20140928 for：处理多语言
+
         MutiLangUtil.setMutiLangValueForList(dataGrid.getResults(), "typename");
-        // add-end--Author:zhangguoming  Date:20140928 for：处理多语言
+
 
 		TagUtil.datagrid(response, dataGrid);
 	}
 
-    // add-start--Author:zhangguoming  Date:20140928 for：数据字典修改
     /**
      * 跳转到类型页面
      * @param request request
@@ -229,7 +314,7 @@ public class SystemController extends BaseController {
         request.setAttribute("typegroupid", typegroupid);
 		return new ModelAndView("system/type/typeListForTypegroup");
 	}
-    // add-end--Author:zhangguoming  Date:20140928 for：数据字典修改
+
 //	@RequestMapping(params = "typeGroupTree")
 //	@ResponseBody
 //	public List<ComboTree> typeGroupTree(HttpServletRequest request, HttpServletResponse response, DataGrid dataGrid) {
@@ -280,16 +365,16 @@ public class SystemController extends BaseController {
 			}
 		} else {
 			cq = new CriteriaQuery(TSTypegroup.class);
-//            add-begin--Author:zhangguoming  Date:20140807 for：添加字典查询条件
+
             String typegroupcode = request.getParameter("typegroupcode");
             if(typegroupcode != null ) {
-            	//begin--Author:JueYue  Date:2014-8-23 for：修改查询拼装
+
                 HqlRuleEnum rule = PageValueConvertRuleEnum
 						.convert(typegroupcode);
                 Object value = PageValueConvertRuleEnum.replaceValue(rule,
                 		typegroupcode);
 				ObjectParseUtil.addCriteria(cq, "typegroupcode", rule, value);
-				//end--Author:JueYue  Date:2014-8-23 for：修改查询拼装
+
                 cq.add();
             }
             String typegroupname = request.getParameter("typegroupname");
@@ -298,7 +383,7 @@ public class SystemController extends BaseController {
                 List<String> typegroupnameKeyList = systemService.findByQueryString("select typegroupname from TSTypegroup");
                 MutiLangSqlCriteriaUtil.assembleCondition(typegroupnameKeyList, cq, "typegroupname", typegroupname);
             }
-//            add-end--Author:zhangguoming  Date:20140807 for：添加字典查询条件
+
             List<TSTypegroup> typeGroupList = systemService.getListByCriteriaQuery(cq, false);
 			for (TSTypegroup obj : typeGroupList) {
 				TreeGrid treeNode = new TreeGrid();
@@ -385,7 +470,7 @@ public class SystemController extends BaseController {
 		String message = null;
 		AjaxJson j = new AjaxJson();
 		typegroup = systemService.getEntity(TSTypegroup.class, typegroup.getId());
-//        add-begin--Author:zhangguoming  Date:20140929 for：数据字典修改
+
 		message = "类型分组: " + mutiLangService.getLang(typegroup.getTypegroupname()) + " 被删除 成功";
         if (ListUtils.isNullOrEmpty(typegroup.getTSTypes())) {
             systemService.delete(typegroup);
@@ -395,7 +480,7 @@ public class SystemController extends BaseController {
         } else {
             message = "类型分组: " + mutiLangService.getLang(typegroup.getTypegroupname()) + " 下有类型信息，不能删除！";
         }
-//        add-end--Author:zhangguoming  Date:20140929 for：数据字典修改
+
 		j.setMsg(message);
 		return j;
 	}
@@ -440,6 +525,29 @@ public class SystemController extends BaseController {
 		}
 		return v;
 	}
+
+	/**
+	 * 刷新字典分组缓存&字典缓存
+	 *
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(params = "refreshTypeGroupAndTypes")
+	@ResponseBody
+	public AjaxJson refreshTypeGroupAndTypes(HttpServletRequest request) {
+		String message = null;
+		AjaxJson j = new AjaxJson();
+		try{
+			systemService.refreshTypeGroupAndTypes();
+			message = mutiLangService.getLang("common.refresh.success");
+		} catch (Exception e) {
+			message = mutiLangService.getLang("common.refresh.fail");
+		}
+		j.setMsg(message);
+		return j;
+	}
+
+	
 	/**
 	 * 添加类型分组
 	 *
@@ -479,14 +587,18 @@ public class SystemController extends BaseController {
 		String code=oConvertUtils.getString(request.getParameter("code"));
 		String typeGroupCode=oConvertUtils.getString(request.getParameter("typeGroupCode"));
 		StringBuilder hql = new StringBuilder("FROM ").append(TSType.class.getName()).append(" AS entity WHERE 1=1 ");
-		hql.append(" AND entity.TSTypegroup.typegroupcode =  '").append(typeGroupCode).append("'");
-		hql.append(" AND entity.typecode =  '").append(typecode).append("'");
-		List<Object> types = this.systemService.findByQueryString(hql.toString());
-		if(types.size()>0&&!code.equals(typecode))
+
+		hql.append(" AND entity.TSTypegroup.typegroupcode =  ?");
+		hql.append(" AND entity.typecode =  ?");
+//		List<Object> types = this.systemService.findByQueryString(hql.toString());
+		List<Object> types = this.systemService.findHql(hql.toString(),typeGroupCode,typecode);
+
+		if(types.size()>0&&(code==null||!code.equals(typecode)))
 		{
 			v.setInfo("类型已存在");
 			v.setStatus("n");
 		}
+
 		return v;
 	}
 	/**
@@ -542,6 +654,9 @@ public class SystemController extends BaseController {
 		req.setAttribute("typegroupid", typegroupid);
         TSTypegroup typegroup = systemService.findUniqueByProperty(TSTypegroup.class, "id", typegroupid);
         String typegroupname = typegroup.getTypegroupname();
+
+        req.setAttribute("typegroup", typegroup);
+
         req.setAttribute("typegroupname", mutiLangService.getLang(typegroupname));
 		if (StringUtil.isNotEmpty(type.getId())) {
 			type = systemService.getEntity(TSType.class, type.getId());
@@ -657,6 +772,10 @@ public class SystemController extends BaseController {
 
 		if(oConvertUtils.isNotEmpty(parentCode)){
 			sb.append(" and  org_code like '").append(parentCode).append("%'");
+		} else {
+
+			//sb.append(" and LEFT(org_code,1)='A'");
+
 		}
 
 		sb.append(" ORDER BY org_code DESC");
@@ -993,170 +1112,8 @@ public class SystemController extends BaseController {
 			}
 		}
 	}
-
-	/************************************** 版本维护 ************************************/
-
-	/**
-	 * 版本维护列表
-	 */
-	@RequestMapping(params = "versionList")
-	public void versionList(HttpServletRequest request, HttpServletResponse response, DataGrid dataGrid) {
-		CriteriaQuery cq = new CriteriaQuery(TSVersion.class, dataGrid);
-		this.systemService.getDataGridReturn(cq, true);
-		TagUtil.datagrid(response, dataGrid);
-		;
-	}
-
-	/**
-	 * 删除版本
-	 */
-
-	@RequestMapping(params = "delVersion")
-	@ResponseBody
-	public AjaxJson delVersion(TSVersion version, HttpServletRequest request) {
-		String message = null;
-		AjaxJson j = new AjaxJson();
-		version = systemService.getEntity(TSVersion.class, version.getId());
-		message = "版本：" + version.getVersionName() + "被删除 成功";
-		systemService.delete(version);
-		systemService.addLog(message, Globals.Log_Type_DEL, Globals.Log_Leavel_INFO);
-
-		return j;
-	}
-
-	/**
-	 * 版本添加跳转
-	 *
-	 * @param req
-	 * @return
-	 */
-	@RequestMapping(params = "addversion")
-	public ModelAndView addversion(HttpServletRequest req) {
-		return new ModelAndView("system/version/version");
-	}
-
-	/**
-	 * 保存版本
-	 *
-	 * @param request
-	 * @return
-	 * @throws Exception
-	 */
-	@RequestMapping(params = "saveVersion", method = RequestMethod.POST)
-	@ResponseBody
-	public AjaxJson saveVersion(HttpServletRequest request) throws Exception {
-		AjaxJson j = new AjaxJson();
-		TSVersion version = new TSVersion();
-		String versionName = request.getParameter("versionName");
-		String versionCode = request.getParameter("versionCode");
-		version.setVersionCode(versionCode);
-		version.setVersionName(versionName);
-		systemService.save(version);
-		j.setMsg("版本保存成功");
-		return j;
-	}
-
-	/**
-	 * 新闻法规文件列表
-	 */
-	@RequestMapping(params = "documentList")
-	public void documentList(HttpServletRequest request, HttpServletResponse response, DataGrid dataGrid) {
-		CriteriaQuery cq = new CriteriaQuery(TSDocument.class, dataGrid);
-		String typecode = oConvertUtils.getString(request.getParameter("typecode"));
-		cq.createAlias("TSType", "TSType");
-		cq.eq("TSType.typecode", typecode);
-		cq.add();
-		this.systemService.getDataGridReturn(cq, true);
-		TagUtil.datagrid(response, dataGrid);
-	}
-
-	/**
-	 * 删除文档
-	 *
-	 * @param document
-	 * @return
-	 */
-	@RequestMapping(params = "delDocument")
-	@ResponseBody
-	public AjaxJson delDocument(TSDocument document, HttpServletRequest request) {
-		String message = null;
-		AjaxJson j = new AjaxJson();
-		document = systemService.getEntity(TSDocument.class, document.getId());
-		message = "" + document.getDocumentTitle() + "被删除成功";
-		userService.delete(document);
-		systemService.addLog(message, Globals.Log_Type_DEL,
-				Globals.Log_Leavel_INFO);
-		j.setSuccess(true);
-		j.setMsg(message);
-		return j;
-	}
-
-	/**
-	 * 文件添加跳转
-	 *
-	 * @param req
-	 * @return
-	 */
-	@RequestMapping(params = "addFiles")
-	public ModelAndView addFiles(HttpServletRequest req) {
-		return new ModelAndView("system/document/files");
-	}
-
-	/**
-	 * 文件编辑跳转
-	 *
-	 * @return
-	 */
-
-	@RequestMapping(params = "editFiles")
-	public ModelAndView editFiles(TSDocument doc, ModelMap map) {
-		if (StringUtil.isNotEmpty(doc.getId())) {
-			doc = systemService.getEntity(TSDocument.class, doc.getId());
-            map.put("doc", doc);
-		}
-		return new ModelAndView("system/document/files");
-	}
-
-	/**
-	 * 保存文件
-	 *
-	 * @param document
-	 * @return
-	 * @throws Exception
-	 */
-	@RequestMapping(params = "saveFiles", method = RequestMethod.POST)
-	@ResponseBody
-	public AjaxJson saveFiles(HttpServletRequest request, HttpServletResponse response, TSDocument document) {
-		AjaxJson j = new AjaxJson();
-		Map<String, Object> attributes = new HashMap<String, Object>();
-		TSTypegroup tsTypegroup=systemService.getTypeGroup("fieltype","文档分类");
-		TSType tsType = systemService.getType("files","附件", tsTypegroup);
-		String fileKey = oConvertUtils.getString(request.getParameter("fileKey"));// 文件ID
-		String documentTitle = oConvertUtils.getString(request.getParameter("documentTitle"));// 文件标题
-		if (StringUtil.isNotEmpty(fileKey)) {
-			document.setId(fileKey);
-			document = systemService.getEntity(TSDocument.class, fileKey);
-			document.setDocumentTitle(documentTitle);
-
-		}
-		document.setSubclassname(MyClassLoader.getPackPath(document));
-		document.setCreatedate(DateUtils.gettimestamp());
-		document.setTSType(tsType);
-		UploadFile uploadFile = new UploadFile(request, document);
-		uploadFile.setCusPath("files");
-		//设置weboffice转化【不设置该字段，则不做在线预览转化】
-		uploadFile.setSwfpath("swfpath");
-		document = systemService.uploadFile(uploadFile);
-		attributes.put("url", document.getRealpath());
-		attributes.put("fileKey", document.getId());
-		attributes.put("name", document.getAttachmenttitle());
-		attributes.put("viewhref", "commonController.do?objfileList&fileKey=" + document.getId());
-		attributes.put("delurl", "commonController.do?delObjFile&fileKey=" + document.getId());
-		j.setMsg("文件添加成功");
-		j.setAttributes(attributes);
-		return j;
-	}
-
+	
+	
 	/**
 	 * 在线用户列表
 	 * @param request
@@ -1168,7 +1125,7 @@ public class SystemController extends BaseController {
 	public void datagridOnline(Client tSOnline,HttpServletRequest request,
 			HttpServletResponse response, DataGrid dataGrid) {
 		List<Client> onlines = new ArrayList<Client>();
-		onlines.addAll(ClientManager.getInstance().getAllClient());
+		onlines.addAll(clientManager.getAllClient());
 		dataGrid.setTotal(onlines.size());
 		dataGrid.setResults(getClinetList(onlines,dataGrid));
 		TagUtil.datagrid(response, dataGrid);
@@ -1200,7 +1157,11 @@ public class SystemController extends BaseController {
             return new ModelAndView("common/upload/uploadView");
     }
 
-	//add-begin--Author: jg_huangxg  Date:20150629 for：增加数据日志功能
+    @RequestMapping(params = "commonWebUpload")
+    public ModelAndView commonWebUpload(HttpServletRequest req) {
+            return new ModelAndView("common/upload/uploadView2");
+    }
+
     /************************************** 数据日志 ************************************/
     /**
      * 转跳到 数据日志
@@ -1228,9 +1189,7 @@ public class SystemController extends BaseController {
         modelMap.put("dataContent",datalogEntity.getDataContent());
 		return new ModelAndView("system/dataLog/popDataContent");
 	}
-	//add-end--Author: jg_huangxg  Date:20150629 for：增加数据日志功能
 
-	//add-begin--Author: jg_huangxg  Date:20150701 for：增加数据日志Diff功能
     /**
      * 转跳到 数据日志
      * @param request
@@ -1256,12 +1215,10 @@ public class SystemController extends BaseController {
     }
 
 	@RequestMapping(params = "diffDataVersion")
-	public ModelAndView diffDataVersion(HttpServletRequest request, @RequestParam String id1, @RequestParam String id2){
-		String hql1 = "from TSDatalogEntity where id = '" + id1 + "'";
-		TSDatalogEntity datalogEntity1 = this.systemService.singleResult(hql1);
+	public ModelAndView diffDataVersion(HttpServletRequest request, @RequestParam String id1, @RequestParam String id2) throws ParseException {
 
-		String hql2 = "from TSDatalogEntity where id = '" + id2 + "'";
-		TSDatalogEntity datalogEntity2 = this.systemService.singleResult(hql2);
+		TSDatalogEntity datalogEntity1 = this.systemService.getEntity(TSDatalogEntity.class, id1);
+		TSDatalogEntity datalogEntity2 = this.systemService.getEntity(TSDatalogEntity.class, id2);
 
 		if (datalogEntity1 != null && datalogEntity2 != null) {
 			//正则用于去掉头尾的[]字符(如存在)
@@ -1292,7 +1249,14 @@ public class SystemController extends BaseController {
 				dataLogDiff.setName(string);
 
 				if (map1.containsKey(string)) {
-					value1 = map1.get(string).toString();
+					if ("createDate".equals(string)&&StringUtil.isNotEmpty(map1.get(string))){
+						java.util.Date date=new Date((String) map1.get(string));
+						SimpleDateFormat simpledateformat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+						value1=simpledateformat.format(date);
+					}else {
+						value1 = map1.get(string).toString();
+					}
+
 					if (value1 == null) {
 						dataLogDiff.setValue1("");
 					}else {
@@ -1301,9 +1265,16 @@ public class SystemController extends BaseController {
 				}else{
 					dataLogDiff.setValue1("");
 				}
-				
+
 				if (map2.containsKey(string)) {
-					value2 = map2.get(string).toString();
+					if ("createDate".equals(string)&&StringUtil.isNotEmpty(map2.get(string))){
+						java.util.Date date=new Date((String) map2.get(string));
+						SimpleDateFormat simpledateformat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+						value2=simpledateformat.format(date);
+					}else {
+						value2 = map2.get(string).toString();
+					}
+
 					if (value2 == null) {
 						dataLogDiff.setValue2("");
 					}else {
@@ -1342,5 +1313,484 @@ public class SystemController extends BaseController {
 		return new ModelAndView("system/dataLog/diffDataVersion");
 	}
 
-	//add-end--Author: jg_huangxg  Date:20150701 for：增加数据日志Diff功能
+
+	/**
+	 * ftpUploader
+	 * ftp实现 文件上传处理/删除处理
+	 */
+	@RequestMapping("/ftpUploader")
+    @ResponseBody
+    public AjaxJson ftpUploader(HttpServletRequest request, HttpServletResponse response) {
+        AjaxJson j = new AjaxJson();
+        String msg="啥都没干-没传参数吧！";
+        String upFlag=request.getParameter("isup");
+        String delFlag=request.getParameter("isdel");
+        PropertiesUtil ftpConfig = new PropertiesUtil("sysConfig.properties");
+        Properties prop = ftpConfig.getProperties();
+        String ftpUrl=prop.getProperty("ftp.url");
+        String port=prop.getProperty("ftp.port");
+        String userName=prop.getProperty("ftp.userName");
+        String passWord=prop.getProperty("ftp.passWord");
+        try {
+	        //如果是上传操作
+	        if("1".equals(upFlag)){
+	        	String fileName = null;
+	        	String bizType=request.getParameter("bizType");//上传业务名称
+	        	String bizPath=StoreUploadFilePathEnum.getPath(bizType);//根据业务名称判断上传路径
+	        	String nowday=new SimpleDateFormat("yyyyMMdd").format(new Date());
+	        	String path=bizPath+File.separator+nowday;//ftp存放地址
+	            MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
+	            MultipartFile mf=multipartRequest.getFile("file");// 获取上传文件对象
+	    		fileName = mf.getOriginalFilename();// 获取文件名
+	    		if(uploadFtpFile(ftpUrl, Integer.valueOf(port), userName, passWord, path, fileName, mf.getInputStream())){
+	    			msg="上传成功";
+	    			j.setObj(path+File.separator+fileName);
+	    			//1、将文件路径赋值给obj,前台可获取之,随表单提交,然后数据库中存储该路径
+	    			//2、demo这里用的是AjaxJson对象,开发者可自定义返回对象,但是用t标签的时候路径属性名需为  obj或 filePath 或自己在标签内指定若在标签内指定则action返回路径的名称应保持一致
+	    		}else{
+	    			msg="ftp上传失败";
+	    		}
+				j.setMsg(msg);
+	        }else if("1".equals(delFlag)){//如果是删除操作
+	        	String path=request.getParameter("path");
+	        	path=path.replace("\\", "/");
+    			if(delFtpFile(ftpUrl, Integer.valueOf(port), userName, passWord, path)){
+    				msg="--------成功删除文件---------"+path;
+    			}else{
+    				j.setSuccess(false);
+    				msg="没删除成功--请重新试试";
+    			}
+	        }else{
+	        	throw new BusinessException("没有传参指定上传还是删除操作！");
+	        }
+        } catch (IOException e) {
+			j.setSuccess(false);
+			logger.info(e.getMessage());
+		}catch (BusinessException b) {
+			j.setSuccess(false);
+			logger.info(b.getMessage());
+		}
+    	logger.info("-----systemController/filedeal.do------------"+msg);
+		j.setMsg(msg);
+        return j;
+    }
+	
+	/**
+	 * ftp上传文件
+	 * @param url ftp地址
+	 * @param port ftp端口
+	 * @param userName 登录名
+	 * @param passWord 密码
+	 * @param path ftp服务器文件存放路径
+	 * @param fileName 上传之后文件名称
+	 * @param file 文件流
+	 * @return true 成功,false 失败
+	 */
+	private boolean uploadFtpFile(String url,int port,String userName, String passWord, String path, String fileName, InputStream file){
+		boolean success=false;
+		FTPClient ftp=new FTPClient();
+		try {
+			ftp.setControlEncoding("UTF-8");
+			ftp.connect(url, port);//连接
+			ftp.login(userName, passWord);//登录
+			ftp.setFileType(FTP.BINARY_FILE_TYPE);
+			int replyCode = ftp.getReplyCode();
+			if(!FTPReply.isPositiveCompletion(replyCode)){
+				ftp.disconnect();
+				return success;
+			}
+			//创建文件夹 
+			String[] dirs=path.replace(File.separator, "/").split("/");
+			if(dirs!=null && dirs.length>0)//目录路径都为英文,故不需要转码
+				for (String dir : dirs) {
+					ftp.makeDirectory(dir);
+					ftp.changeWorkingDirectory(dir);
+				}
+			ftp.storeFile(new String(fileName.getBytes("UTF-8"),"iso-8859-1"), file);
+			file.close();
+			ftp.logout();
+			success=true;
+		} catch (SocketException e) {
+			logger.info(e.getMessage());
+		} catch (IOException e) {
+			logger.info(e.getMessage());
+		}finally{
+			if(ftp.isConnected()){
+				try {
+					ftp.disconnect();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return success;
+	}
+	
+	/**
+	 * ftp删除文件
+	 * @param url ftp地址
+	 * @param port ftp端口
+	 * @param userName 登录名
+	 * @param passWord 密码
+	 * @param path ftp服务器文件存放路径
+	 * @return true 成功,false 失败
+	 */
+	private boolean delFtpFile(String url,int port,String userName, String passWord,String path){
+		boolean success=false;
+		FTPClient ftp=new FTPClient();
+		try {
+			ftp.setControlEncoding("UTF-8");
+			ftp.connect(url, port);//连接
+			ftp.login(userName, passWord);//登录
+			int replyCode = ftp.getReplyCode();
+			if(!FTPReply.isPositiveCompletion(replyCode)){
+				ftp.disconnect();
+				return success;
+			}
+			String fileName=path.substring(path.lastIndexOf("/")+1);
+			ftp.changeWorkingDirectory(path.substring(0, path.lastIndexOf("/")));
+			ftp.deleteFile(new String(fileName.getBytes("UTF-8"),"iso-8859-1"));
+			ftp.logout();
+			success=true;
+		} catch (SocketException e) {
+			logger.info(e.getMessage());
+		} catch (IOException e) {
+			logger.info(e.getMessage());
+		}finally{
+			if(ftp.isConnected()){
+				try {
+					ftp.disconnect();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return success;
+	}
+	
+	/**
+	 * 获取图片流/获取文件用于下载(ftp方式)
+	 * @param response
+	 * @param request
+	 * @throws Exception
+	 */
+	@RequestMapping(value="showOrDownByurlFTP",method = RequestMethod.GET)
+	public void showOrDownByurlFTP(HttpServletResponse response,HttpServletRequest request) throws Exception{
+		String flag=request.getParameter("down");//是否下载否则展示图片
+		String dbpath = request.getParameter("dbPath");
+		if("1".equals(flag)){
+			response.setContentType("application/x-msdownload;charset=utf-8");
+			String fileName=dbpath.substring(dbpath.lastIndexOf(File.separator)+1);
+			String userAgent = request.getHeader("user-agent").toLowerCase();
+			if (userAgent.contains("msie") || userAgent.contains("like gecko") ) {
+				fileName = URLEncoder.encode(fileName, "UTF-8");
+			}else {  
+				fileName = new String(fileName.getBytes("UTF-8"), "iso-8859-1");  
+			} 
+			response.setHeader("Content-disposition", "attachment; filename="+ fileName);
+		}else{
+			response.setContentType("image/jpeg;charset=utf-8");
+		}
+		
+		OutputStream outputStream=null;
+		try {
+			outputStream = response.getOutputStream();
+			downFtpFile(dbpath, outputStream);
+			response.flushBuffer();
+		} catch (Exception e) {
+			logger.info("--通过流的方式获取文件异常--"+e.getMessage());
+		}finally{
+			if(outputStream!=null){
+				outputStream.close();
+			}
+		}
+	}
+	
+	/**
+	 * 从ftp服务器上下载文件流到outputStream中
+	 * @param path ftp存放路径
+	 * @param out 文件输出流
+	 * @return true成功，false失败
+	 */
+	private boolean downFtpFile(String path,OutputStream out){
+		//TODO 获取ftp连接 待封装
+		PropertiesUtil ftpConfig = new PropertiesUtil("sysConfig.properties");
+        Properties prop = ftpConfig.getProperties();
+        String ftpUrl=prop.getProperty("ftp.url");
+        String port=prop.getProperty("ftp.port");
+        String userName=prop.getProperty("ftp.userName");
+        String passWord=prop.getProperty("ftp.passWord");
+		boolean success=false;
+		FTPClient ftp=new FTPClient();
+		try {
+			ftp.setControlEncoding("UTF-8");
+			ftp.connect(ftpUrl, Integer.valueOf(port));//连接
+			ftp.login(userName, passWord);//登录ftp
+			int replyCode = ftp.getReplyCode();
+			if(!FTPReply.isPositiveCompletion(replyCode)){
+				ftp.disconnect();
+				return success;
+			}
+			path=path.replace("\\", "/");
+			String fileName=path.substring(path.lastIndexOf("/")+1);
+			ftp.changeWorkingDirectory(path.substring(0, path.lastIndexOf("/")));
+			ftp.retrieveFile(new String(fileName.getBytes("UTF-8"),"iso-8859-1"), out);
+			ftp.logout();
+			success=true;
+		} catch (SocketException e) {
+			logger.info(e.getMessage());
+		} catch (IOException e) {
+			logger.info(e.getMessage());
+		}finally{
+			if(ftp.isConnected()){
+				try {
+					ftp.disconnect();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return success;
+	}
+
+	/**
+	 * WebUploader
+	 * 文件上传处理/删除处理
+	 */
+	@RequestMapping("/filedeal")
+    @ResponseBody
+    public AjaxJson filedeal(HttpServletRequest request, HttpServletResponse response) {
+        AjaxJson j = new AjaxJson();
+        String msg="啥都没干-没传参数吧！";
+        String upFlag=request.getParameter("isup");
+        String delFlag=request.getParameter("isdel");
+        String swfTransform=request.getParameter("swfTransform");//是否将文件转换成swf
+        //String ctxPath = request.getSession().getServletContext().getRealPath("");
+        String ctxPath=ResourceUtil.getConfigByName("webUploadpath");//demo中设置为D://upFiles,实际项目应因事制宜
+
+        //默认上传文件是否转换为swf，实现在线预览功能开关
+		String globalSwfTransformFlag = ResourceUtil.getConfigByName("swf.transform.flag");
+
+		
+        logger.debug("----ctxPath-----"+ctxPath);
+        try {
+	        //如果是上传操作
+	        if("1".equals(upFlag)){
+	        	String fileName = null;
+	        	String bizType=request.getParameter("bizType");//上传业务名称
+	        	logger.debug("---bizType----"+bizType);
+	        	String bizPath=StoreUploadFilePathEnum.getPath(bizType);//根据业务名称判断上传路径
+	        	String nowday=new SimpleDateFormat("yyyyMMdd").format(new Date());
+	        	logger.debug("---nowday----"+nowday);
+	    		File file = new File(ctxPath+File.separator+bizPath+File.separator+nowday);
+	    		if (!file.exists()) {
+	    			file.mkdirs();// 创建文件根目录
+	    		}
+	            MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;
+	            MultipartFile mf=multipartRequest.getFile("file");// 获取上传文件对象
+
+	            String orgName = mf.getOriginalFilename();// 获取文件名
+	    		fileName = orgName.substring(0,orgName.lastIndexOf("."))+"_"+System.currentTimeMillis()+orgName.substring(orgName.indexOf("."));
+
+	    		String savePath = file.getPath() + File.separator + fileName;
+	    		String fileExt = FileUtils.getExtend(fileName);
+	    		if("txt".equals(fileExt)){
+	    			FileUtils.uploadTxtFile(mf, savePath);
+	    		}else{
+	    			File savefile = new File(savePath);
+		    		FileCopyUtils.copy(mf.getBytes(), savefile);
+	    		}
+				msg="上传成功";
+				j.setMsg(msg);
+				String dbpath=bizPath+File.separator+nowday+File.separator+fileName;
+				logger.debug("---dbpath----"+dbpath);
+				if(dbpath.contains("\\")){
+					dbpath = dbpath.replace("\\","/");
+				}
+				j.setObj(dbpath);
+				//1、将文件路径赋值给obj,前台可获取之,随表单提交,然后数据库中存储该路径
+				//2、demo这里用的是AjaxJson对象,开发者可自定义返回对象,但是用t标签的时候路径属性名需为  obj或 filePath 或自己在标签内指定若在标签内指定则action返回路径的名称应保持一致
+				if("true".equals(globalSwfTransformFlag) && "true".equals(swfTransform)){
+					//转换swf
+					SwfToolsUtil.convert2SWF(savePath);
+				}
+			//如果是删除操作
+	        }else if("1".equals(delFlag)){
+	        	String path=request.getParameter("path");
+	        	String delpath=ctxPath+File.separator+path;
+	        	File fileDelete = new File(delpath);
+	    		if (!fileDelete.exists() || !fileDelete.isFile()) {
+	    			msg="警告: " + delpath + "不存在!";
+	    			logger.info(msg);
+	    			j.setSuccess(true);//不存在前台也给他删除
+	    		}else{
+	    			if(fileDelete.delete()){
+	    				msg="--------成功删除文件---------"+delpath;
+	    				logger.info(msg);
+	    				//删除swf/pdf文件
+	    				if("true".equals(globalSwfTransformFlag) && "true".equals(swfTransform)){
+	    					try {
+	    						String swfPath = FileUtils.getSwfPath(delpath);
+	    						new File(swfPath).delete();
+	    						logger.info("--------成功删除swf文件---------"+swfPath);
+	    						if(!delpath.endsWith("pdf")){
+	    							String pdfPath = delpath.substring(0, delpath.lastIndexOf(".")+1)+"pdf";
+	    							new File(pdfPath).delete();
+		    						logger.info("--------成功删除pdf文件---------"+pdfPath);
+	    						}
+							} catch (Exception e) {
+								logger.info("swf文件ORpdf文件未删除成功");
+							}
+	    				}
+	    			}else{
+	    				j.setSuccess(false);
+	    				msg="没删除成功--jdk的问题还是你文件的问题请重新试试";
+	    				logger.info(msg);
+	    			}
+	    		}
+	        }else{
+	        	throw new BusinessException("没有传参指定上传还是删除操作！");
+	        }
+        } catch (IOException e) {
+			j.setSuccess(false);
+			logger.info(e.getMessage());
+		}catch (BusinessException b) {
+			j.setSuccess(false);
+			logger.info(b.getMessage());
+		}
+    	logger.debug("-----systemController/filedeal.do------------"+msg);
+		j.setMsg(msg);
+        return j;
+    }
+	
+	/**
+	 * 预览图片/word/excel/PDF文件
+	 * @author taoYan
+	 * @since 2018年7月26日
+	 */
+	@RequestMapping(params = "openViewFile")
+	public ModelAndView openViewFile(HttpServletRequest request) {
+		String inputFile = request.getParameter("path");
+		String extend=FileUtils.getExtend(inputFile);
+		if (FileUtils.isPicture(extend)) {
+			request.setAttribute("realpath", "img/server/"+inputFile);
+			return new ModelAndView("common/upload/imageView");
+		}else{
+			String swfPath = FileUtils.getSwfPath(inputFile);
+			request.setAttribute("swfpath", "img/server/"+swfPath+"?down=true");
+			return new ModelAndView("common/upload/swfView");
+		}
+	}
+
+//	/**
+//	 * 获取图片流/获取文件用于下载
+//	 * @param response
+//	 * @param request
+//	 * @throws Exception
+//	 */
+//	@RequestMapping(value="showOrDownByurl",method = RequestMethod.GET)
+//	public void showOrDownByurl(HttpServletResponse response,HttpServletRequest request) throws Exception{
+//		String flag=request.getParameter("down");//是否下载否则展示图片
+//		String dbpath = request.getParameter("dbPath");
+
+//		if(oConvertUtils.isNotEmpty(dbpath)&&dbpath.endsWith(",")){
+//			dbpath = dbpath.substring(0, dbpath.length()-1);
+//		}
+
+//		if("1".equals(flag)){
+//			response.setContentType("application/x-msdownload;charset=utf-8");
+//			String fileName=dbpath.substring(dbpath.lastIndexOf(File.separator)+1);
+
+//			String userAgent = request.getHeader("user-agent").toLowerCase();
+//			if (userAgent.contains("msie") || userAgent.contains("like gecko") ) {
+//				fileName = URLEncoder.encode(fileName, "UTF-8");
+//			}else {  
+//				fileName = new String(fileName.getBytes("UTF-8"), "iso-8859-1");  
+//			} 
+//			response.setHeader("Content-disposition", "attachment; filename="+ fileName);
+
+//		}else{
+//			response.setContentType("image/jpeg;charset=utf-8");
+//		}
+//	
+////		//TODO 缓存设置有效时间为一小时，IE有效，chrome无效
+////        response.setHeader("Cache-Control", "max-age=3600, must-revalidate");
+////        response.setHeader("Pragma", "Pragma");
+////        response.setHeader("cache-directive", "public");
+//
+//        
+//		InputStream inputStream = null;
+//		OutputStream outputStream=null;
+//		try {
+//			String localPath=ResourceUtil.getConfigByName("webUploadpath");
+//			String imgurl = localPath+File.separator+dbpath;
+//			inputStream = new BufferedInputStream(new FileInputStream(imgurl));
+//			outputStream = response.getOutputStream();
+//			byte[] buf = new byte[1024];
+//	        int len;
+//	        while ((len = inputStream.read(buf)) > 0) {
+//	            outputStream.write(buf, 0, len);
+//	        }
+//	        response.flushBuffer();
+//		} catch (Exception e) {
+//			logger.info("--通过流的方式获取文件异常--"+e.getMessage());
+//		}finally{
+//			if(inputStream!=null){
+//				inputStream.close();
+//			}
+//			if(outputStream!=null){
+//				outputStream.close();
+//			}
+//		}
+//	}
+
+	
+	/**
+	 * 获取图片流/获取文件用于下载
+	 * @param response
+	 * @param request
+	 * @throws Exception
+	 */
+	@RequestMapping(value="downloadFile",method = RequestMethod.GET)
+	public void downloadFile(HttpServletResponse response,HttpServletRequest request) throws Exception{
+		String ctxPath = request.getSession().getServletContext().getRealPath("/");
+		String dbpath = request.getParameter("filePath");
+		String downLoadPath = ctxPath + dbpath;
+
+		if(UrlCheckUtil.checkUrl(downLoadPath)){
+			return;
+		}
+
+		response.setContentType("application/x-msdownload;charset=utf-8");
+		String fileName=dbpath.substring(dbpath.lastIndexOf("/")+1);
+		String userAgent = request.getHeader("user-agent").toLowerCase();
+		if (userAgent.contains("msie") || userAgent.contains("like gecko") ) {
+			fileName = URLEncoder.encode(fileName, "UTF-8");
+		}else {  
+			fileName = new String(fileName.getBytes("UTF-8"), "iso-8859-1");  
+		} 
+		response.setHeader("Content-disposition", "attachment; filename="+ fileName);
+		InputStream inputStream = null;
+		OutputStream outputStream=null;
+		try {
+			inputStream = new BufferedInputStream(new FileInputStream(downLoadPath));
+			outputStream = response.getOutputStream();
+			byte[] buf = new byte[1024];
+	        int len;
+	        while ((len = inputStream.read(buf)) > 0) {
+	            outputStream.write(buf, 0, len);
+	        }
+	        response.flushBuffer();
+		} catch (Exception e) {
+			logger.info("--通过流的方式获取文件异常--"+e.getMessage());
+		}finally{
+			if(inputStream!=null){
+				inputStream.close();
+			}
+			if(outputStream!=null){
+				outputStream.close();
+			}
+		}
+	}
+
 }

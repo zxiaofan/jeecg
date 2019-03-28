@@ -26,6 +26,7 @@ import org.jeecgframework.tag.core.easyui.TagUtil;
 import org.jeecgframework.tag.vo.easyui.Autocomplete;
 import org.jeecgframework.web.system.pojo.base.TSAttachment;
 import org.jeecgframework.web.system.service.SystemService;
+import org.jeecgframework.web.system.service.TSDictTableConfigServiceI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.FileCopyUtils;
@@ -51,6 +52,8 @@ public class CommonController extends BaseController {
 	 */
 	private static final Logger logger = Logger.getLogger(CommonController.class);
 	private SystemService systemService;
+	@Autowired
+	private TSDictTableConfigServiceI tSDictTableConfigService;
 
 	@Autowired
 	public void setSystemService(SystemService systemService) {
@@ -63,6 +66,7 @@ public class CommonController extends BaseController {
 	@RequestMapping(params = "listTurn")
 	public ModelAndView listTurn(HttpServletRequest request) {
 		String turn = request.getParameter("turn");// 跳转的目标页面
+		logger.info("--通用页面跳转--listTurn-------"+turn);
 		return new ModelAndView(turn);
 	}
 
@@ -76,7 +80,7 @@ public class CommonController extends BaseController {
 		String fileid = request.getParameter("fileid");
 		String subclassname = oConvertUtils.getString(request.getParameter("subclassname"), "org.jeecgframework.web.system.pojo.base.TSAttachment");
 		String contentfield = oConvertUtils.getString(request.getParameter("contentfield"));
-		Class fileClass = MyClassLoader.getClassByScn(subclassname);// 附件的实际类
+		Class<?> fileClass = MyClassLoader.getClassByScn(subclassname);// 附件的实际类
 		Object fileobj = systemService.getEntity(fileClass, fileid);
 		ReflectHelper reflectHelper = new ReflectHelper(fileobj);
 		String extend = oConvertUtils.getString(reflectHelper.getMethodValue("extend"));
@@ -93,6 +97,9 @@ public class CommonController extends BaseController {
 			return new ModelAndView("common/upload/imageView");
 		} else {
 			String swfpath = oConvertUtils.getString(reflectHelper.getMethodValue("swfpath"));
+
+			swfpath=swfpath.replace("\\","/");
+
 			request.setAttribute("swfpath", swfpath);
 			return new ModelAndView("common/upload/swfView");
 		}
@@ -100,29 +107,49 @@ public class CommonController extends BaseController {
 	}
 
 	/**
-	 * 附件预览读取
+	 * 附件预览读取/下载文件
 	 * 
 	 * @return
 	 */
 	@RequestMapping(params = "viewFile")
 	public void viewFile(HttpServletRequest request, HttpServletResponse response) {
 		String fileid =oConvertUtils.getString(request.getParameter("fileid"));
-		String subclassname = oConvertUtils.getString(request.getParameter("subclassname"), "com.jeecg.base.pojo.TSAttachment");
-		Class fileClass = MyClassLoader.getClassByScn(subclassname);// 附件的实际类
-		Object fileobj = systemService.getEntity(fileClass, fileid);
-		ReflectHelper reflectHelper = new ReflectHelper(fileobj);
-		UploadFile uploadFile = new UploadFile(request, response);
-		String contentfield = oConvertUtils.getString(request.getParameter("contentfield"), uploadFile.getByteField());
-		byte[] content = (byte[]) reflectHelper.getMethodValue(contentfield);
-		String path = oConvertUtils.getString(reflectHelper.getMethodValue("realpath"));
-		String extend = oConvertUtils.getString(reflectHelper.getMethodValue("extend"));
-		String attachmenttitle = oConvertUtils.getString(reflectHelper.getMethodValue("attachmenttitle"));
-		uploadFile.setExtend(extend);
-		uploadFile.setTitleField(attachmenttitle);
-		uploadFile.setRealPath(path);
-		uploadFile.setContent(content);
-		//uploadFile.setView(true);
-		systemService.viewOrDownloadFile(uploadFile);
+
+		String subclassname = request.getParameter("subclassname");
+		if(oConvertUtils.isEmpty(subclassname)){
+			TSAttachment tsAttachment = systemService.getEntity(TSAttachment.class, fileid);
+			UploadFile uploadFile = new UploadFile(request, response);
+			//byte[] content = tsAttachment.getAttachmentcontent();
+			String path = tsAttachment.getRealpath();;
+			String extend = tsAttachment.getExtend();
+			String attachmenttitle = tsAttachment.getAttachmenttitle();
+			uploadFile.setExtend(extend);
+			uploadFile.setTitleField(attachmenttitle);
+			uploadFile.setRealPath(path);
+			//uploadFile.setContent(content);
+			//uploadFile.setView(true);
+			systemService.viewOrDownloadFile(uploadFile);
+			logger.info("--附件预览----TSAttachment---viewFile-----path--"+path);
+		}else{
+			subclassname = oConvertUtils.getString(subclassname);
+			Class<?> fileClass = MyClassLoader.getClassByScn(subclassname);// 自定义附件实体类
+			Object fileobj = systemService.getEntity(fileClass, fileid);
+			ReflectHelper reflectHelper = new ReflectHelper(fileobj);
+			UploadFile uploadFile = new UploadFile(request, response);
+			String contentfield = oConvertUtils.getString(request.getParameter("contentfield"), uploadFile.getByteField());
+			byte[] content = (byte[]) reflectHelper.getMethodValue(contentfield);
+			String path = oConvertUtils.getString(reflectHelper.getMethodValue("realpath"));
+			String extend = oConvertUtils.getString(reflectHelper.getMethodValue("extend"));
+			String attachmenttitle = oConvertUtils.getString(reflectHelper.getMethodValue("attachmenttitle"));
+			uploadFile.setExtend(extend);
+			uploadFile.setTitleField(attachmenttitle);
+			uploadFile.setRealPath(path);
+			uploadFile.setContent(content);
+			//uploadFile.setView(true);
+			systemService.viewOrDownloadFile(uploadFile);
+			logger.info("--附件预览---自定义实体类："+subclassname+"--viewFile-----path--"+path);
+		}
+
 	}
 
 	@RequestMapping(params = "importdata")
@@ -243,6 +270,7 @@ public class CommonController extends BaseController {
 		message = "" + attachment.getAttachmenttitle() + "删除成功";
 		systemService.delete(objfile);
 		systemService.addLog(message, Globals.Log_Type_DEL, Globals.Log_Leavel_INFO);
+		logger.info("--删除附件---delObjFile----"+message);
 		
 		j.setMsg(message);
 		return j;
@@ -305,4 +333,53 @@ public class CommonController extends BaseController {
 		this.systemService.getDataGridReturn(cq, true);
 		TagUtil.datagrid(response, dataGrid);
 	}
+
+	@RequestMapping(params = "superQueryExist")
+	@ResponseBody
+	public String superQueryExist(HttpServletRequest request,String superQueryCode) {
+		if(oConvertUtils.isEmpty(superQueryCode)){
+			return "no";
+		}
+
+		String sql = "select count(1) from super_query_main where query_code = ?";
+		long count = this.systemService.getCountForJdbcParam(sql, superQueryCode);
+
+		if(count>0){
+			return "yes";
+		}else{
+			return "no";
+		}
+	}
+
+	/**
+	 * @param dictionary 自定义字典(格式：表名,编码,显示文本)
+	 * @param dictCondition 自定义字典表的显示文本-字典查询条件
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(params = "getDictInfo")
+	@ResponseBody
+	public AjaxJson getDictInfo(String dictionary,String dictCondition,Boolean popup,String value, HttpServletRequest request) {
+		String message = null;
+		AjaxJson j = new AjaxJson();
+
+		Object text = "--";
+		if(popup){
+			//TODO popup处理  (暂不做处理)
+			text="-- popup暂不支持ajax --";
+		}else{
+			boolean flag = tSDictTableConfigService.checkDictAuth(dictionary, dictCondition);
+			if(flag){
+				text = tSDictTableConfigService.getDictText(dictionary, dictCondition, value);
+			}else{
+				text="-- 字典配置需要授权 --";
+			}
+		}
+
+		j.setObj(text);
+		j.setMsg(message);
+		return j;
+	}
+
+
 }

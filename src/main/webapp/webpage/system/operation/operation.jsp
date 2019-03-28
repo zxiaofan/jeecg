@@ -40,6 +40,14 @@
 	                <t:mutiLang langKey="operationType.disabled"/>
 	            </option>
             </select>
+            <span class="Validform_checktip"> 说明：配置后即受限制，授权后不受限制</span>
+        </div>
+        <div class="form">
+			<label style="color:red;">
+				用法说明：<br>    
+				&nbsp;&nbsp;&nbsp;&nbsp;1. 配置隐藏或禁用后，默认所有用户都看不见/禁用;<br>
+				&nbsp;&nbsp;&nbsp;&nbsp;2. 用户授权后，方可见/可编辑;<br>
+				&nbsp;&nbsp;&nbsp;&nbsp;[ admin 用户有超级权限，不受限制]
         </div>
         <input name="TSFunction.id" value="${functionId}" type="hidden">
         <input name="status" type="hidden" value="0">

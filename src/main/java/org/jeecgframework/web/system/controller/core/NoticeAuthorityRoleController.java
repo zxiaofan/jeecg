@@ -1,4 +1,7 @@
 package org.jeecgframework.web.system.controller.core;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -16,7 +19,6 @@ import org.jeecgframework.web.system.pojo.base.TSNoticeAuthorityRole;
 import org.jeecgframework.web.system.service.NoticeAuthorityRoleServiceI;
 import org.jeecgframework.web.system.service.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -45,16 +47,15 @@ public class NoticeAuthorityRoleController extends BaseController {
 	@Autowired
 	private SystemService systemService;
 
-
+	private ExecutorService executor = Executors.newCachedThreadPool();
 	/**
 	 * 通知公告角色授权列表 页面跳转
-	 * 
 	 * @return
 	 */
 	@RequestMapping(params = "noticeAuthorityRole")
 	public ModelAndView noticeAuthorityRole(String noticeId,HttpServletRequest request) {
 		request.setAttribute("noticeId", noticeId);
-		return new ModelAndView("system/user/noticeAuthorityRoleList");
+		return new ModelAndView("system/notice/noticeAuthorityRoleList");
 	}
 
 	/**
@@ -91,10 +92,9 @@ public class NoticeAuthorityRoleController extends BaseController {
 	public AjaxJson doDel(TSNoticeAuthorityRole noticeAuthorityRole, HttpServletRequest request) {
 		String message = null;
 		AjaxJson j = new AjaxJson();
-		noticeAuthorityRole = systemService.getEntity(TSNoticeAuthorityRole.class, noticeAuthorityRole.getId());
 		message = "通知公告角色授权删除成功";
 		try{
-			noticeAuthorityRoleService.delete(noticeAuthorityRole);
+			noticeAuthorityRoleService.doDelTSNoticeAuthorityRole(noticeAuthorityRole);
 			systemService.addLog(message, Globals.Log_Type_DEL, Globals.Log_Leavel_INFO);
 		}catch(Exception e){
 			e.printStackTrace();
@@ -235,12 +235,11 @@ public class NoticeAuthorityRoleController extends BaseController {
 		AjaxJson j = new AjaxJson();
 		message = "通知公告角色授权保存成功";
 		try{
-			if(this.noticeAuthorityRoleService.checkAuthorityRole(noticeAuthorityRole.getNoticeId(), noticeAuthorityRole.getRole().getId())){
-				message = "该角色已授权，请勿重复操作。";
-			}else{
-				noticeAuthorityRoleService.save(noticeAuthorityRole);
-				systemService.addLog(message, Globals.Log_Type_INSERT, Globals.Log_Leavel_INFO);
-			}
+			this.noticeAuthorityRoleService.saveTSNoticeAuthorityRole(noticeAuthorityRole);
+			systemService.addLog(message, Globals.Log_Type_INSERT, Globals.Log_Leavel_INFO);
+		}catch(BusinessException e){
+			e.printStackTrace();
+			message = e.getMessage();
 		}catch(Exception e){
 			e.printStackTrace();
 			message = "通知公告角色授权保存失败";

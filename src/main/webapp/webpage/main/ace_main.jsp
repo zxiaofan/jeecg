@@ -12,6 +12,7 @@
 		<link rel="shortcut icon" href="images/favicon.ico">
 		<!-- basic styles -->
 		<link href="plug-in/ace/assets/css/bootstrap.min.css" rel="stylesheet" />
+		<link href="plug-in/hplus/css/font-awesome.min.css?v=4.4.0" rel="stylesheet">
 		<link rel="stylesheet" href="plug-in/ace/assets/css/font-awesome.min.css" />
 
 		<!--[if IE 7]>
@@ -39,13 +40,19 @@
 		<!-- ace settings handler -->
 
 		<script src="plug-in/ace/assets/js/ace-extra.min.js"></script>
-
+		<t:base type="tools,jquery"></t:base>
 		<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
 
 		<!--[if lt IE 9]>
 		<script src="plug-in/ace/assets/js/html5shiv.js"></script>
 		<script src="plug-in/ace/assets/js/respond.min.js"></script>
 		<![endif]-->
+		<style type="text/css">
+		.dropdown-menu li a:hover, .dropdown-menu li a:focus, .dropdown-menu li a:active, .dropdown-menu li.active a, .dropdown-menu li.active a:hover, .dropdown-menu .dropdown-submenu:hover>a, .nav-tabs .dropdown-menu li>a:focus {
+		    background: rgba(255,255,255,.15);
+		    color: #428bca;
+		}
+		</style>
 	</head>
 
 	<body>
@@ -66,6 +73,7 @@
 
 				<div class="navbar-header pull-right" role="navigation">
 					<ul class="nav ace-nav">
+					<!-- 
 						<li class="grey">
 							<a data-toggle="dropdown" class="dropdown-toggle" href="#">
 								<i class="icon-tasks"></i>
@@ -137,7 +145,7 @@
 									</a>
 								</li>
 							</ul>
-						</li>
+						</li>-->
 
 						<li class="purple">
 							<a data-toggle="dropdown" class="dropdown-toggle" href="#">
@@ -150,18 +158,16 @@
 									<i class="icon-warning-sign"></i>
 									0条公告
 								</li>
-								
-								<li class="dropdown-content">
-									<ul class="dropdown-menu dropdown-navbar navbar-pink" id="noticeContent">
-										<!-- ajax加载 -->
+								<li >
+									<ul id="noticeContent">
+										ajax加载
 									</ul>
 								</li>
 
 								<li>
-									<a href="#" id="noticeContent">
+									<a href="#" id="noticeContentLink">
 									</a>
 								</li>
-
 								<li>
 									<a href="javascript:goAllNotice();" id="noticeFooter">
 										查看全部
@@ -198,10 +204,10 @@
 									</a>
 								</li>
 							</ul>
-						</li>
+						</li> 
 
 						<li class="light-blue">
-							<a data-toggle="dropdown" href="#" class="dropdown-toggle">
+							<a data-toggle="dropdown" href="#" class="dropdown-toggle" onclick="bindFrameClick()">
 								<img class="nav-user-photo" src="plug-in/ace/avatars/avatar2.png" alt="Jason's Photo" />
 								<span class="user-info">
 									<small>${userName }</small>
@@ -232,7 +238,7 @@
 									</a>
 								</li>
 								<li>
-									<a href="javascript:add('<t:mutiLang langKey="common.change.style"/>','userController.do?changestyle','',550,250)">
+									<a href="javascript:add('<t:mutiLang langKey="common.change.style"/>','userController.do?changestyle','',550,270)">
 										<i class="icon-cog"></i>
 										 <t:mutiLang langKey="common.my.style"/>
 									</a>
@@ -314,8 +320,8 @@
 
 					<ul class="nav nav-list">
 						<li class="active">
-							<a  href="javascript:addTabs({id:'home',title:'首页',close: false,url: 'loginController.do?acehome'});">
-								<i class="icon-dashboard"></i>
+							<a  href="javascript:addTabs({id:'home',title:'首页',close: false,url: 'loginController.do?hplushome'});">
+								<i class="fa fa-tachometer"></i>
 								<span class="menu-text"> 首页 </span>
 							</a>
 						</li>
@@ -347,7 +353,7 @@
 					</div><!-- /.page-content -->
 				</div><!-- /.main-content -->
 
-				<div class="ace-settings-container" id="ace-settings-container">
+				<div class="ace-settings-container" id="ace-settings-container" style="top:100px;">
 					<div class="btn btn-app btn-xs btn-warning ace-settings-btn" id="ace-settings-btn">
 						<i class="icon-cog bigger-150"></i>
 					</div>
@@ -471,7 +477,6 @@
 		  <script src="plug-in/ace/assets/js/excanvas.min.js"></script>
 		<![endif]-->
 		<!-- ace scripts -->
-		<t:base type="tools"></t:base>
 		<script src="plug-in/jquery-plugs/storage/jquery.storageapi.min.js"></script>
 		<script src="plug-in/ace/assets/js/ace-elements.min.js"></script>
 		<script src="plug-in/ace/assets/js/ace.min.js"></script>
@@ -479,11 +484,14 @@
 		<script src="plug-in/jquery/jquery.contextmenu.js"></script>
 		<script src="plug-in/layer/layer.js"></script>
 	    <script src="plug-in/ace/js/bootbox.js"></script>
+		<!--add-start--Author:wangkun Date:20160813 for:内部聊天修改-->
+		<%@include file="/context/layui.jsp"%>
+		<!--add-end--Author:wangkun Date:20160813 for:内部聊天修改-->
 		<!-- inline scripts related to this page -->
 		<script>
 		jQuery(function($) {
 			//$( "#tabs" ).tabs();
-			addTabs({id:'home',title:'首页',close: false,url: 'loginController.do?acehome'});
+			addTabs({id:'home',title:'首页',close: false,url: 'loginController.do?hplushome'});
 			$('.theme-poptit .close').click(function(){
 	    		$('.theme-popover-mask').fadeOut(100);
 	    		$('.theme-popover').slideUp(200);
@@ -653,6 +661,7 @@
 			}});
   			
   	}
+
 			function clearLocalstorage(){
 				var storage=$.localStorage;
 				if(!storage)
@@ -663,7 +672,13 @@
 			}
 
 
+
 	$(document).ready(function(){
+		loadNotice();
+		loadSms();
+	});
+	
+	function loadNotice(){
 		//加载公告
 		var url = "noticeController.do?getNoticeList";
 		jQuery.ajax({
@@ -672,9 +687,10 @@
     		dataType:"JSON",
     		async: false,
     		success:function(data){
+    			//console.log(data);
     			if(data.success){
     				var noticeList = data.attributes.noticeList;
-    				var noticeCount = data.obj;
+    				var noticeCount = noticeList.length;
     				//加载公告条数
     				if(noticeCount>99){
     					$("#noticeCount").html("99+");
@@ -706,8 +722,9 @@
     			}
     		}
     	});
-		
-		
+	}
+	
+	function loadSms(){
 		//加载消息
 		var url = "tSSmsController.do?getMessageList";
 		$.ajax({
@@ -754,8 +771,7 @@
     			}
     		}
     	});
-		
-	});
+	}
 
     function goAllNotice(){
     	var addurl = "noticeController.do?noticeList";
@@ -765,28 +781,18 @@
     function goNotice(id){
   		var addurl = "noticeController.do?goNotice&id="+id;
 		createdetailwindow("通知公告详情", addurl, 750, 600);
+		loadNotice();
     }
     
     function goAllMessage(){
-    	var addurl = "tSSmsController.do?getSysInfos";
+    	var addurl = "tSSmsController.do?goMySmsList";
   		createdetailwindow("消息", addurl, 800, 400);
     }
     
     function goMessage(id){
-    	var title = $("#"+id+"_title").val();
-    	var content = $("#"+id+"_content").val();
-    	$("#msgId").val(id);
-    	$("#msgTitle").html(title);
-    	$("#msgContent").html(content);
-    	var status = $("#"+id+"_status").val();
-    	if(status==1){
-    		$("#msgStatus").html("未读");
-    	}else{
-    		$("#msgStatus").html("已读");
-    	}
-
-    	$('.theme-popover-mask').fadeIn(100);
-    	$('.theme-popover').slideDown(200);
+    	var addurl = "tSSmsController.do?goSmsDetail&id="+id;
+		createdetailwindow("通知详情", addurl, 750, 600);
+		loadSms();
     }
     
     function readMessage(){
@@ -807,7 +813,26 @@
   	    		}
   	    	});
     }
+
+    //个人信息弹出层回缩
+    function frameBodyClick(){ 
+		$(".user-menu").parent().removeClass("open");
+	}
+    //新增iframe中绑定click事件回调父级函数
+    function bindFrameClick(){
+    	$("iframe").contents().find("body").attr("onclick", "parent.frameBodyClick()"); 
+    }
+
 		</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?098e6e84ab585bf0c2e6853604192b8b";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
 </body>
 </html>
 

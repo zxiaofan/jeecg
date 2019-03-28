@@ -17,10 +17,12 @@ import javax.servlet.http.HttpServletResponse;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
+import org.apache.log4j.Logger;
 import org.jeecgframework.codegenerate.database.JeecgReadTable;
 import org.jeecgframework.codegenerate.pojo.Columnt;
 import org.jeecgframework.core.common.model.json.AjaxJson;
 import org.jeecgframework.core.common.model.json.DataGrid;
+import org.jeecgframework.core.util.IpUtil;
 import org.jeecgframework.core.util.StringUtil;
 import org.jeecgframework.core.util.oConvertUtils;
 import org.jeecgframework.tag.vo.datatable.SortDirection;
@@ -43,7 +45,8 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 @RequestMapping("/cgformTransController")
 public class CgformTransController {
-
+	private static final Logger logger = Logger.getLogger(CgformTransController.class);
+	private static String GENERATE_FORM_IDS;
 	@Autowired
 	private CgFormFieldServiceI cgFormFieldService;
 
@@ -69,7 +72,9 @@ public class CgformTransController {
 			e1.printStackTrace();
 		}
 		String html = "";
-		Collections.sort(list,new StringSort(dataGrid.getOrder()));
+
+		Collections.sort(list,new StringSort(SortDirection.toEnum(dataGrid.getOrder())));
+
 		List<String> tables = cgFormFieldService.findByQueryString("select tableName from CgFormHeadEntity");
 		list.removeAll(tables);
 		List<String> index = new ArrayList<String>();
@@ -103,22 +108,31 @@ public class CgformTransController {
 	public AjaxJson transEditor(HttpServletRequest request, String id)
 			throws Exception {
 		AjaxJson j = new AjaxJson();
+
+		//TODO 1.存在缺陷，表单移除再点击生成违法生成
+		//TODO 2.重复提醒，在前段没提示信息
+		if(GENERATE_FORM_IDS!=null && GENERATE_FORM_IDS.equals(id)){
+			j.setMsg("不允许重复生成!");
+			j.setSuccess(false);
+			return j;
+		}else{
+			GENERATE_FORM_IDS = id;
+		}
+
 		String ids[] = id.split(",");
 		String no = "";
 		String yes = "";
 		for (int i = 0; i < ids.length; i++) {
 			if (StringUtil.isNotEmpty(ids[i])) {
-				List<CgFormHeadEntity> cffList = cgFormFieldService
-						.findByProperty(CgFormHeadEntity.class, "tableName",
-								ids[i]);
+				List<CgFormHeadEntity> cffList = cgFormFieldService.findByProperty(CgFormHeadEntity.class, "tableName",ids[i]);
 				if (cffList.size() > 0) {
 					if (no != "")
 						no += ",";
 					no += ids[i];
 					continue;
 				}
-				List<Columnt> list = new JeecgReadTable()
-						.readOriginalTableColumn(ids[i]);
+				logger.info("["+IpUtil.getIpAddr(request)+"] [online数据库导入表] "+"  --表名："+ids[i]);
+				List<Columnt> list = new JeecgReadTable().readOriginalTableColumn(ids[i]);
 				CgFormHeadEntity cgFormHead = new CgFormHeadEntity();
 				cgFormHead.setJformType(1);
 				cgFormHead.setIsCheckbox("Y");
@@ -132,8 +146,12 @@ public class CgformTransController {
 				List<CgFormFieldEntity> columnsList = new ArrayList<CgFormFieldEntity>();
 				for (int k = 0; k < list.size(); k++) {
 					Columnt columnt = list.get(k);
+					logger.info("  columnt : "+ columnt.toString());
 					String fieldName = columnt.getFieldDbName();
 					CgFormFieldEntity cgFormField = new CgFormFieldEntity();
+
+					cgFormField.setOldFieldName(columnt.getFieldDbName().toLowerCase());
+
 					cgFormField.setFieldName(columnt.getFieldDbName()
 							.toLowerCase());
 					if (StringUtil.isNotEmpty(columnt.getFiledComment()))
@@ -145,9 +163,9 @@ public class CgformTransController {
 					cgFormField.setIsShowList("Y");
 					cgFormField.setOrderNum(k + 2);
 					cgFormField.setQueryMode("group");
-					cgFormField.setLength(0);
+					cgFormField.setLength(oConvertUtils.getInt(columnt.getPrecision()));
 					cgFormField.setFieldLength(120);
-					cgFormField.setPointLength(0);
+					cgFormField.setPointLength(oConvertUtils.getInt(columnt.getScale()));
 					cgFormField.setShowType("text");
 					cgFormField.setIsNull(columnt.getNullable());
 					if("id".equalsIgnoreCase(fieldName)){
@@ -174,15 +192,15 @@ public class CgformTransController {
 					} else if ("java.lang.Double".equalsIgnoreCase(columnt.getFieldType())
 							||"java.lang.Float".equalsIgnoreCase(columnt.getFieldType())) {
 						cgFormField.setType(DataBaseConst.DOUBLE);
-					} else if ("java.math.BigDecimal".equalsIgnoreCase(columnt.getFieldType())) {
+					} else if ("java.math.BigDecimal".equalsIgnoreCase(columnt.getFieldType()) || "BigDecimal".equalsIgnoreCase(columnt.getFieldType())) {
 						cgFormField.setType(DataBaseConst.BIGDECIMAL);
-					} else if (columnt.getFieldType().contains("blob")) {
+					} else if ("byte[]".equalsIgnoreCase(columnt.getFieldType()) || columnt.getFieldType().contains("blob")) {
 						cgFormField.setType(DataBaseConst.BLOB);
 						columnt.setCharmaxLength(null);
 					} else {
 						cgFormField.setType(DataBaseConst.STRING);
 					}
-					if (StringUtil.isNotEmpty(columnt.getCharmaxLength())) {
+					if (oConvertUtils.isEmpty(columnt.getPrecision()) && StringUtil.isNotEmpty(columnt.getCharmaxLength())) {
 						if (Long.valueOf(columnt.getCharmaxLength()) >= 3000) {
 							cgFormField.setType(DataBaseConst.TEXT);
 							cgFormField.setShowType(DataBaseConst.TEXTAREA);
@@ -190,34 +208,31 @@ public class CgformTransController {
 								cgFormField.setLength(Integer.valueOf(columnt.getCharmaxLength()));
 							}catch(Exception e){}
 						} else {
-							cgFormField.setLength(Integer.valueOf(columnt
-									.getCharmaxLength()));
+							cgFormField.setLength(Integer.valueOf(columnt.getCharmaxLength()));
 						}
 					} else {
 						if (StringUtil.isNotEmpty(columnt.getPrecision())) {
-							cgFormField.setLength(Integer.valueOf(columnt
-									.getPrecision()));
+							cgFormField.setLength(Integer.valueOf(columnt.getPrecision()));
 						}
-						//update-begin--Author:zhangdaihao  Date:20140212 for：[001]oracle下number类型，数据库表导出表单，默认长度为0同步失败
+
 						else{
 							if(cgFormField.getType().equals(DataBaseConst.INT)){
 								cgFormField.setLength(10);
 							}
 						}
-						//update-end--Author:zhangdaihao  Date:20140212 for：[001]oracle下number类型，数据库表导出表单，默认长度为0同步失败
+
 						if (StringUtil.isNotEmpty(columnt.getScale()))
-							cgFormField.setPointLength(Integer.valueOf(columnt
-									.getScale()));
+							cgFormField.setPointLength(Integer.valueOf(columnt.getScale()));
 
 					}
 					columnsList.add(cgFormField);
 				}
 				cgFormHead.setColumns(columnsList);
-				//update-begin--Author:scott  Date:20170720  for：导入报单报错-----
+
 				if(oConvertUtils.isEmpty(cgFormHead.getJformCategory())){
-					cgFormHead.setJformCategory("bdfl_ptbd");
+					cgFormHead.setJformCategory("bdfl_include");
 				}
-				//update-end--Author:scott  Date:20170720  for：导入报单报错-----
+
 				cgFormFieldService.saveTable(cgFormHead, "");
 				if (yes != "")
 					yes += ",";
@@ -228,6 +243,7 @@ public class CgformTransController {
 		map.put("no", no);
 		map.put("yes", yes);
 		j.setObj(map);
+		GENERATE_FORM_IDS = null;
 		return j;
 	}
 

@@ -19,6 +19,7 @@ import org.jeecgframework.web.system.pojo.base.TSIcon;
 import org.jeecgframework.web.system.pojo.base.TSOperation;
 import org.jeecgframework.web.system.service.MutiLangServiceI;
 import org.jeecgframework.web.system.service.SystemService;
+import org.jeecgframework.web.system.util.IconImageUtil;
 
 import org.jeecgframework.core.common.controller.BaseController;
 import org.jeecgframework.core.common.hibernate.qbc.CriteriaQuery;
@@ -81,12 +82,10 @@ public class IconController extends BaseController {
 		cq.add();
 		this.systemService.getDataGridReturn(cq, true);
         IconImageUtil.convertDataGrid(dataGrid, request);//先把数据库的byte存成图片到临时目录，再给每个TsIcon设置目录路径
-
         List<TSIcon> list = dataGrid.getResults();
         for(TSIcon tsicon:list){
         	tsicon.setIconName(MutiLangUtil.doMutiLang(tsicon.getIconName(), ""));
 		}
-
         TagUtil.datagrid(response, dataGrid);
 	}
 
@@ -308,4 +307,30 @@ public class IconController extends BaseController {
 		}
 		return new ModelAndView("system/icon/icons");
 	}
+
+	/**
+	 * 修改图标信息
+	 * @param icon
+	 * @param request
+	 * @return
+	 */
+	@RequestMapping(params = "updateInfo")
+	@ResponseBody
+	public AjaxJson updateInfo(TSIcon icon, HttpServletRequest request) {
+		String message = null;
+		AjaxJson j = new AjaxJson();
+		try {
+			TSIcon iconOld= systemService.getEntity(TSIcon.class, icon.getId());
+			iconOld.setIconName(icon.getIconName());
+			iconOld.setIconType(icon.getIconType());
+			this.systemService.updateEntitie(iconOld);
+			message = MutiLangUtil.paramUpdSuccess("common.icon");
+			j.setMsg(message);
+		} catch (Exception e) {
+			 message = MutiLangUtil.paramUpdFail("common.icon");
+		     j.setMsg(message+e.getMessage().toString());
+		}
+		return j;
+	}
+
 }

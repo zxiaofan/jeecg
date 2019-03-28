@@ -1,19 +1,37 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@include file="/context/mytags.jsp"%>
+<#-- update--begin--author:zhangjiaqiang date:20170531 for:增加列表页面对于图片和文件的判断 -->
+<#include "../../ui/tdgCol.ftl"/>
+<#-- update--end--author:zhangjiaqiang date:20170531 for:增加列表页面对于图片和文件的判断 -->
+<#assign orderByCreateDate = false />
+<#list columns as po>
+	<#if po.fieldName=='createDate'>
+		<#assign orderByCreateDate = true />
+		<#break>
+	</#if>
+</#list>
 <t:base type="jquery,easyui,tools,DatePicker"></t:base>
 <div class="easyui-layout" fit="true">
   <div region="center" style="padding:0px;border:0px">
-  <t:datagrid name="${entityName?uncap_first}List" checkbox="true" fitColumns="false" title="${ftl_description}" actionUrl="${entityName?uncap_first}Controller.do?datagrid" idField="id" fit="true" queryMode="group">
-  <#list columns as po>
-   <t:dgCol title="${po.content}"  field="${po.fieldName}" <#if po.showType?index_of("datetime")!=-1>formatter="yyyy-MM-dd hh:mm:ss"<#else><#if po.showType?index_of("date")!=-1>formatter="yyyy-MM-dd"</#if></#if> <#if po.isShowList?if_exists?html =='N'>hidden="true"<#else></#if> <#if po.isQuery =='Y'>query="true"</#if> <#if po.queryMode =='single'>queryMode="single"<#elseif po.queryMode =='group'>queryMode="group"</#if> <#if po.dictTable?if_exists?html!="">dictionary="${po.dictTable},${po.dictField},${po.dictText}" <#if po.showType=='popup'>popup="true"</#if><#else><#if po.dictTable?if_exists?html=="" && po.dictField?if_exists?html!="">dictionary="${po.dictField}"</#if></#if> width="${po.fieldLength}"></t:dgCol>
-  </#list>
+  <t:datagrid name="${entityName?uncap_first}List" checkbox="true" fitColumns="true" title="${ftl_description}" <#if orderByCreateDate == true >sortName="createDate"<#else>sortName="id"</#if> actionUrl="${entityName?uncap_first}Controller.do?datagrid" idField="id" fit="true" queryMode="group">
+  <#-- update--begin--author:zhangjiaqiang date:20170531 for:增加图片和文件的列表判断 -->
+  <@dgcol columns=columns/>
+  <#-- update--begin--author:zhangjiaqiang date:20170531 for:增加图片和文件的列表判断 -->
    <t:dgCol title="操作" field="opt" width="100"></t:dgCol>
-   <t:dgDelOpt title="删除" url="${entityName?uncap_first}Controller.do?doDel&id={id}" />
+  <#--//update-begin--Author:zhangjiaqiang  Date:20160925 for：TASK #1344 [链接图标] online功能测试的按钮链接图标修改 -->
+   <t:dgDelOpt title="删除" url="${entityName?uncap_first}Controller.do?doDel&id={id}" urlclass="ace_button"  urlfont="fa-trash-o"/>
     <#list buttons as btn>
     <#if btn.buttonStyle =='link' && btn.buttonStatus == '1'>
-    <t:dgFunOpt funname="do${btn.buttonCode?cap_first}(id)" title="${btn.buttonName}"/>
+    <t:dgFunOpt funname="do${btn.buttonCode?cap_first}(id)" title="${btn.buttonName}" urlclass="ace_button"<#rt/> 
+<#if  btn.buttonName?index_of("下载") gt -1>
+ urlfont="fa-download"<#rt/>
+<#else>
+ urlfont="fa-wrench"<#rt/>
+</#if>
+/>
   	</#if>
    </#list> 
+   <#--//update-end--Author:zhangjiaqiang  Date:20160925 for：TASK #1344 [链接图标] online功能测试的按钮链接图标修改 -->
    <t:dgToolBar title="录入" icon="icon-add" url="${entityName?uncap_first}Controller.do?goAdd" funname="add"></t:dgToolBar>
    <t:dgToolBar title="编辑" icon="icon-edit" url="${entityName?uncap_first}Controller.do?goUpdate" funname="update"></t:dgToolBar>
    <t:dgToolBar title="批量删除"  icon="icon-remove" url="${entityName?uncap_first}Controller.do?doBatchDel" funname="deleteALLSelect"></t:dgToolBar>
@@ -33,21 +51,7 @@
   </t:datagrid>
   </div>
  </div>
- <script src = "webpage/${bussiPackage?replace('.','/')}/${entityPackage}/${entityName?uncap_first}List.js"></script>		
  <script type="text/javascript">
- $(document).ready(function(){
- 		//给时间控件加上样式
- 		<#list columns as po>
- 		<#if (po.showType?index_of("datetime")!=-1 || po.showType?index_of("date")!=-1) && po.queryMode=="single">
- 			$("#${entityName?uncap_first}Listtb").find("input[name='${po.fieldName}']").attr("class","Wdate").click(function(){WdatePicker({dateFmt:'yyyy-MM-dd'});});
- 		<#else>
- 		<#if (po.showType?index_of("datetime")!=-1 || po.showType?index_of("date")!=-1) && po.queryMode=="group">
- 			$("#${entityName?uncap_first}Listtb").find("input[name='${po.fieldName}_begin']").attr("class","Wdate").click(function(){WdatePicker({dateFmt:'yyyy-MM-dd'});});
- 			$("#${entityName?uncap_first}Listtb").find("input[name='${po.fieldName}_end']").attr("class","Wdate").click(function(){WdatePicker({dateFmt:'yyyy-MM-dd'});});
- 		</#if>
- 		</#if>
-		</#list>
- });
  <#list buttons as btn>
     <#if btn.buttonStyle =='button' && btn.buttonStatus == '1'>
     <#if btn.optType == 'action'>
@@ -117,3 +121,9 @@ function ExportXlsByT() {
 	  viewNotCreateWin("查看",url, "${entityName?uncap_first}List",false)
 	}
  </script>
+ <#if (cgformConfig.listJs.cgJsStr)?? && cgformConfig.listJs.cgJsStr!="">
+ <script type="text/javascript">
+ //JS增强
+ ${cgformConfig.listJs.cgJsStr}
+ </script>
+ </#if>

@@ -20,15 +20,21 @@ public class DataGridOpenOptTag extends TagSupport {
 	private String exp;//判断链接是否显示的表达式
 	private String operationCode;//按钮的操作Code
 	private String urlStyle;//样式
-	
+
+	private String urlclass;//按钮样式
+	private String urlfont;//按钮图标
+
 	private String openModel = "OpenWin";	//弹出方式
+
+	private boolean inGroup;//操作列菜单一开始是否隐藏【船舶专用】
+
 	public int doStartTag() throws JspTagException {
 		return EVAL_PAGE;
 	}
 	public int doEndTag() throws JspTagException {
 		Tag t = findAncestorWithClass(this, DataGridTag.class);
 		DataGridTag parent = (DataGridTag) t;
-		parent.setOpenUrl(url,title,width,height,exp,operationCode,openModel,urlStyle);
+		parent.setOpenUrl(url,title,width,height,exp,operationCode,openModel,urlStyle,urlclass,urlfont,inGroup);
 		return EVAL_PAGE;
 	}
 	public void setWidth(String width) {
@@ -58,6 +64,24 @@ public class DataGridOpenOptTag extends TagSupport {
 	}
 	public String getUrlStyle() {
 		return urlStyle;
+	}
+	public String getUrlclass() {
+		return urlclass;
+	}
+	public void setUrlclass(String urlclass) {
+		this.urlclass = urlclass;
+	}
+	public String getUrlfont() {
+		return urlfont;
+	}
+	public void setUrlfont(String urlfont) {
+		this.urlfont = urlfont;
+	}
+	public boolean isInGroup() {
+		return inGroup;
+	}
+	public void setInGroup(boolean inGroup) {
+		this.inGroup = inGroup;
 	}
 	
 }

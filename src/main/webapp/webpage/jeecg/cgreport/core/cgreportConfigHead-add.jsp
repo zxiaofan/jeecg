@@ -5,7 +5,6 @@
 <head>
 <title>动态报表配置抬头</title>
 <t:base type="jquery,easyui,tools,DatePicker"></t:base>
-<script type="text/javascript" src="plug-in/ckfinder/ckfinder.js"></script>
 <script type="text/javascript">
   $(document).ready(function(){
 	$('#tt').tabs({
@@ -55,31 +54,6 @@
 			});
 		});
 	}
-	function browseImages(inputId, Img) {// 图片管理器，可多个上传共用
-		var finder = new CKFinder();
-		finder.selectActionFunction = function(fileUrl, data) {//设置文件被选中时的函数 
-			$("#" + Img).attr("src", fileUrl);
-			$("#" + inputId).attr("value", fileUrl);
-		};
-		finder.resourceType = 'Images';// 指定ckfinder只为图片进行管理
-		finder.selectActionData = inputId; //接收地址的input ID
-		finder.removePlugins = 'help';// 移除帮助(只有英文)
-		finder.defaultLanguage = 'zh-cn';
-		finder.popup();
-	}
-	function browseFiles(inputId, file) {// 文件管理器，可多个上传共用
-		var finder = new CKFinder();
-		finder.selectActionFunction = function(fileUrl, data) {//设置文件被选中时的函数 
-			$("#" + file).attr("href", fileUrl);
-			$("#" + inputId).attr("value", fileUrl);
-			decode(fileUrl, file);
-		};
-		finder.resourceType = 'Files';// 指定ckfinder只为文件进行管理
-		finder.selectActionData = inputId; //接收地址的input ID
-		finder.removePlugins = 'help';// 移除帮助(只有英文)
-		finder.defaultLanguage = 'zh-cn';
-		finder.popup();
-	}
 	function decode(value, id) {//value传入值,id接受值
 		var last = value.lastIndexOf("/");
 		var filename = value.substring(last + 1, value.length);
@@ -104,15 +78,22 @@
 			<td class="value" colspan="5"><textarea rows="5" cols="150" id="cgrSql" name="cgrSql" datatype="*"></textarea> <span class="Validform_checktip"></span>
 							<p>&nbsp;&nbsp;&nbsp;&nbsp;您可以键入“${abc}”作为一个参数，这里abc是参数的名称。例如：<br/>
 							&nbsp;&nbsp;&nbsp;&nbsp;select * from table where id = <%="${abc}"%>。<br/>
-							&nbsp;&nbsp;&nbsp;&nbsp;select * from table where id = <%="'${abc}'"%>（如果id字段为字符串类型）<br/>
+							&nbsp;&nbsp;&nbsp;&nbsp;select * from table where id like concat('%',<%="${abc}"%>,'%')。(mysql模糊查询)<br/>
+							&nbsp;&nbsp;&nbsp;&nbsp;select * from table where id like '%'||<%="${abc}"%>||'%'。(oracle模糊查询)<br/>
+							&nbsp;&nbsp;&nbsp;&nbsp;select * from table where id like '%'+<%="${abc}"%>+'%'。(sqlserver模糊查询)<br/>
 							&nbsp;&nbsp;&nbsp;&nbsp;<font color="red">注：参数只支持动态报表，popup暂不支持</font><p/>
 			
 			</td>
 		</tr>
 		<tr>
 			<td align="right"><label class="Validform_label"><t:mutiLang langKey="common.description"/>:</label></td>
-			<td class="value" colspan="5"><textarea rows="3" cols="150" id="content" name="content" datatype="*"></textarea> <span class="Validform_checktip"></span></td>
+
+
+			<td class="value" colspan="5"><textarea rows="3" cols="150" id="content" name="content" ></textarea> <span class="Validform_checktip"></span></td>
+			<!--update-end--Author:dangzhenghui  Date:20170316 for：TASK #1795 【页面校验】体验修改-->
+
 		</tr>
+		<!--update-begin--Author:huangzq  Date:20151129 for：[753]【在线报表】扩展增加俩字段，非必填-->
 		<tr>
 			<td align="right"><label class="Validform_label"><t:mutiLang langKey="common.returnvalfield"/>:</label></td>
 			<td class="value"><input id="returnValField" name="returnValField" type="text" style="width: 150px" class="inputxt"> <span class="Validform_checktip"></span></td>
@@ -121,8 +102,9 @@
 			<td align="right"><label class="Validform_label"><t:mutiLang langKey="common.returntxttype"/>:</label></td>
 			<td class="value" colspan="2"> <t:dictSelect field="popRetype" typeGroupCode="pop_retype" hasLabel="false" defaultVal="1" /><span class="Validform_checktip"></span></td>
         </tr>
-	</table>
-	<div style="width: auto; height: 200px;"><%-- 增加一个div，用于调节页面大小，否则默认太小 --%>
+        <!--update-end--Author:huangzq  Date:20151129 for：[753]【在线报表】扩展增加俩字段，非必填-->   
+	</table>	
+	<div style="width: auto; "><%-- 增加一个div，用于调节页面大小，否则默认太小 --%>	
 	<div style="width: 800px; height: 1px;"></div>
 	
 	<t:tabs id="ttp" iframe="false" tabPosition="top" fit="false"><t:tab href="cgreportConfigHeadController.do?cgreportConfigParamList&id=${cgreportConfigHeadPage.id}" icon="icon-search" title="报表参数" id="cgreportConfigParam"></t:tab></t:tabs>				
@@ -145,7 +127,7 @@
 			<td align="left"><t:dictSelect field="cgreportConfigItemList[#index#].SMode"  extendJson="{style:'width:90px'}" type="list" typeGroupCode="searchmode" defaultVal="" hasLabel="false" title="common.query.module"></t:dictSelect></td>
 			<td align="left"><input name="cgreportConfigItemList[#index#].replaceVa" maxlength="36" type="text" class="inputxt" style="width: 120px;"></td>
 			<td align="left"><input name="cgreportConfigItemList[#index#].dictCode" maxlength="36" type="text" class="inputxt" style="width: 120px;"></td>
-			<td align="left"><t:dictSelect field="cgreportConfigItemList[#index#].SFlag"  extendJson="{style:'width:60px'}" type="list" typeGroupCode="yesorno" defaultVal="" hasLabel="false" title="common.isquery"></t:dictSelect></td>
+			<td align="left"><t:dictSelect field="cgreportConfigItemList[#index#].SFlag"  extendJson="{style:'width:90px'}" type="list" typeGroupCode="yesorno" defaultVal="" hasLabel="false" title="common.isquery"></t:dictSelect></td>
 		</tr>
 	</tbody>
 </table>

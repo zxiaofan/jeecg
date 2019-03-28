@@ -1,6 +1,7 @@
 package org.jeecgframework.tag.core.easyui;
 
 import org.jeecgframework.core.util.MutiLangUtil;
+import org.jeecgframework.core.util.StringUtil;
 
 import javax.servlet.jsp.JspTagException;
 import javax.servlet.jsp.tagext.Tag;
@@ -57,6 +58,33 @@ public class DataGridColumnTag extends TagSupport {
 
 	private String defaultVal = "";//列默认值
 
+	protected String showMode;//表单元素,查询表单中显示样式,默认样式select
+
+	protected boolean newColumn = false;//是否新起一行
+
+	protected String dictCondition; //自定义字典表的显示文本-字典查询条件
+
+	private String filterType = "text";//过滤操作的类型
+	private boolean optsMenu = false;//操作列风格转变 【船舶专用】
+
+	private boolean isAjaxDict = false;
+
+	public boolean isNewColumn() {
+		return newColumn;
+	}
+
+	public void setNewColumn(boolean newColumn) {
+		this.newColumn = newColumn;
+	}
+
+	public String getShowMode() {
+		return showMode;
+	}
+
+	public void setShowMode(String showMode) {
+		this.showMode = showMode;
+	}
+
 	public String getEditor() {
 		return editor;
 	}
@@ -69,7 +97,9 @@ public class DataGridColumnTag extends TagSupport {
 		
 		Tag t = findAncestorWithClass(this, DataGridTag.class);
 		DataGridTag parent = (DataGridTag) t;
-		parent.setColumn(title,field,width,showLen,rowspan,colspan,align,sortable,checkbox,formatter,formatterjs,hidden,replace,treefield,image,imageSize,query,url,funname,arg,queryMode, dictionary,popup,frozenColumn,extend,style,downloadName,autocomplete,extendParams,editor,defaultVal);
+
+		parent.setColumn(title,field,width,showLen,rowspan,colspan,align,sortable,checkbox,formatter,formatterjs,hidden,replace,treefield,image,imageSize,query,url,funname,arg,queryMode, dictionary,popup,frozenColumn,extend,style,downloadName,autocomplete,extendParams,editor,defaultVal,showMode,newColumn,dictCondition,filterType,optsMenu,isAjaxDict);
+
 		return EVAL_PAGE;
 	}
 	
@@ -161,6 +191,11 @@ public class DataGridColumnTag extends TagSupport {
 	public void setDictionary(String dictionary) {
 		this.dictionary = dictionary;
 	}
+
+	public void setdictCondition(String dictCondition) {
+		this.dictCondition = dictCondition;
+	}
+
 	public String getQueryMode() {
 		return queryMode;
 	}
@@ -202,6 +237,11 @@ public class DataGridColumnTag extends TagSupport {
 	}
 
 	public void setExtendParams(String extendParams) {
+
+		if(StringUtil.isNotEmpty(extendParams) && !extendParams.endsWith(",")){
+			extendParams = extendParams + ",";
+		}
+
 		this.extendParams = extendParams;
 	}
 
@@ -229,6 +269,27 @@ public class DataGridColumnTag extends TagSupport {
 		this.defaultVal = defaultVal;
 	}
 	
-	
+	public String getFilterType() {
+		return filterType;
+	}
+	public void setFilterType(String filterType) {
+		this.filterType = filterType;
+	}
+
+	public boolean isOptsMenu() {
+		return optsMenu;
+	}
+
+	public void setOptsMenu(boolean optsMenu) {
+		this.optsMenu = optsMenu;
+	}
+
+	public void setIsAjaxDict(boolean isAjaxDict) {
+		this.isAjaxDict = isAjaxDict;
+	}
+
+	public boolean getIsAjaxDict() {
+		return isAjaxDict;
+	}
 	
 }

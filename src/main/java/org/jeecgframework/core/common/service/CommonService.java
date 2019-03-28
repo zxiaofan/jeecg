@@ -181,8 +181,10 @@ public interface CommonService {
 	 * @param isOffset
 	 * @return
 	 */
-	public DataGridReturn getDataGridReturn(final CriteriaQuery cq,
+
+	public void getDataGridReturn(CriteriaQuery cq,
 			final boolean isOffset);
+
 
 	/**
 	 * 
@@ -266,7 +268,7 @@ public interface CommonService {
 	 * @param treeGridModel
 	 * @return
 	 */
-	public List<TreeGrid> treegrid(List all, TreeGridModel treeGridModel);
+	public List<TreeGrid> treegrid(List<?> all, TreeGridModel treeGridModel);
 
 	/**
 	 * 获取自动完成列表
@@ -336,7 +338,7 @@ public interface CommonService {
 	 * 使用指定的检索标准检索数据并分页返回数据For JDBC-采用预处理方式
 	 * 
 	 */
-	public Long getCountForJdbcParam(String sql, Object[] objs);
+	public Long getCountForJdbcParam(String sql, Object... objs);
 
 	/**
 	 * 通过hql 查询语句查找对象

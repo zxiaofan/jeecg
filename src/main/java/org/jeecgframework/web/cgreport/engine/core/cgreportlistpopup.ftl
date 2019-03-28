@@ -4,7 +4,10 @@ $(function(){$('#${config_id}List').datagrid(
 	{
 	idField: 'id',
 	title: '${config_name}',
-	url:'cgReportController.do?datagrid&configId=${config_id}',
+	//update-begin--Author:gengjiajia---------date:20160721--------for: 支持online报表  popup选择时支持传递参数
+	//url:'cgReportController.do?datagrid&configId=${config_id}',
+	url:'cgReportController.do?datagrid&configId=${config_id}${config_params}',
+	//update-end--Author:gengjiajia---------date:20160721--------for: 支持online报表  popup选择时支持传递参数
 	fit:true,
 	fitColumns:true,
 	pageSize: 10,
@@ -51,9 +54,9 @@ $(function(){$('#${config_id}List').datagrid(
 	function ${config_id}Listsearchbox(value,name){var queryParams=$('#${config_id}List').datagrid('options').queryParams;queryParams[name]=value;queryParams.searchfield=name;$('#${config_id}List').datagrid('reload');}$('#${config_id}Listsearchbox').searchbox({searcher:function(value,name){${config_id}Listsearchbox(value,name);},menu:'#${config_id}Listmm',prompt:'请输入查询关键字'});
 	function searchReset_${config_id}(name){ $("#"+name+"tb").find(":input").val("");${config_id}Listsearch();}
 	function getSelectRows(){
-
+		//update-begin--Author:jg_renjie---------date:20150606--------for: popup功能多选只能返回一个值的错误
 		//return $('#${config_id}List').datagrid('getSelections');
-
+		//update-end--Author:jg_renjie---------date:20150606--------for: popup功能多选只能返回一个值的错误
 		
 		/**
 		 * 解决popup功能多选只能返回一个值的错误
@@ -76,20 +79,24 @@ $(function(){$('#${config_id}List').datagrid(
 	}
 </script>
 <table width="100%"   id="${config_id}List" toolbar="#${config_id}Listtb"></table>
+<#-- update--begin--author:scott date:20170608 for:无查询条件不生成 -->
+<#if  (config_queryList?size >0)>
 <div id="${config_id}Listtb" style="padding:3px; height: auto">
-<div name="searchColums">
+<div name="searchColums" style="border-bottom:0px">
+</#if>
+<#-- update--end--author:scott date:20170608 for:无查询条件不生成 -->
 	<#list config_queryList  as x>
 		<span style="display:-moz-inline-box;display:inline-block;">
-		<span style="display:-moz-inline-box;display:inline-block;width: 100px;text-align:right;text-align:right;text-overflow:ellipsis;-o-text-overflow:ellipsis; overflow: hidden;white-space:nowrap;" title="${x['field_txt']}">${x['field_txt']}：</span>
+		<span style="vertical-align:middle;display:-moz-inline-box;display:inline-block;width: 100px;text-align:right;text-align:right;text-overflow:ellipsis;-o-text-overflow:ellipsis; overflow: hidden;white-space:nowrap;" title="${x['field_txt']}">${x['field_txt']}：</span>
 		<#if x['search_mode']=="group">
 			<input type="text" name="${x['field_name']}_begin"  style="width: 94px"  <#if x['field_type']=="Date">class="easyui-datebox"</#if> />
-			<span style="display:-moz-inline-box;display:inline-block;width: 8px;text-align:right;">~</span>
+			<span style="vertical-align:middle;display:-moz-inline-box;display:inline-block;width: 8px;text-align:right;">~</span>
 			<input type="text" name="${x['field_name']}_end"  style="width: 94px" <#if x['field_type']=="Date">class="easyui-datebox"</#if> />
 		</#if>
 		<#if x['search_mode']=="single">
 				<#if  (x['field_dictlist']?size >0)>
 				<select name = "${x['field_name']}" WIDTH="100" style="width: 104px">
-				<option value = "">---请选择---</option>
+				<option value = ""></option>
 				<#list x['field_dictlist']  as xd>
 					<option value = "${xd['typecode']}">${xd['typename']}</option>
 				</#list>
@@ -101,13 +108,17 @@ $(function(){$('#${config_id}List').datagrid(
 		</#if>
 		</span>	
 	</#list>
-	</div>
-	<div style="height:30px;" class="datagrid-toolbar">
-<#if  (config_queryList?size >0)>
+	<#-- update--begin--author:scott date:20171121 for:查询按钮调整位置 -->
+	<#if  (config_queryList?size >0)>
 		<span style="float:right">
 			<a href="#" class="easyui-linkbutton" iconCls="icon-search" onclick="${config_id}Listsearch()">查询</a>
 			<a href="#" class="easyui-linkbutton" iconCls="icon-reload" onclick="searchReset_${config_id}('${config_id}List')">重置</a>
 		</span>
-</#if>
-	</div>
+	</#if>
+	<#-- update--end--author:scott date:2011121 for:查询按钮调整位置 -->
+<#-- update--begin--author:scott date:20170608 for:无查询条件不生成 -->
+<#if  (config_queryList?size >0)>
 </div>
+</div>
+</#if>
+<#-- update--end--author:scott date:20170608 for:无查询条件不生成 -->

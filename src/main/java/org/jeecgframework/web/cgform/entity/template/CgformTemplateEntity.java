@@ -1,14 +1,13 @@
 package org.jeecgframework.web.cgform.entity.template;
 
-import java.math.BigDecimal;
 import java.util.Date;
-import java.lang.String;
-import java.lang.Double;
-import java.lang.Integer;
-import java.math.BigDecimal;
-import javax.persistence.*;
-import javax.xml.soap.Text;
-import java.sql.Blob;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import org.hibernate.annotations.GenericGenerator;
 import org.jeecgframework.poi.excel.annotation.Excel;
@@ -69,6 +68,12 @@ public class CgformTemplateEntity implements java.io.Serializable {
 	private String templateUpdateName;
 	private String templateDetailName;
 
+	
+	/**
+	 * 状态 0 失效 1 有效
+	 */
+	private Integer status;
+	
 	/**
 	 *方法: 取得java.lang.String
 	 *@return: java.lang.String  主键
@@ -355,4 +360,15 @@ public class CgformTemplateEntity implements java.io.Serializable {
 	public void setTemplateDetailName(String templateDetailName) {
 		this.templateDetailName = templateDetailName;
 	}
+
+	@Column(name="status")
+	public Integer getStatus() {
+		return status;
+	}
+
+	public void setStatus(Integer status) {
+		this.status = status;
+	}
+	
+	
 }

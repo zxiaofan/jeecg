@@ -1,5 +1,8 @@
 package org.jeecgframework.core.enums;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.jeecgframework.core.util.ContextHolderUtils;
 import org.jeecgframework.core.util.StringUtil;
 
 /**
@@ -15,8 +18,9 @@ public enum SysThemesEnum {
 	ACE_STYLE("ace","main/ace_main","metro", "ACE平面风格"),
 	ACE_LE_STYLE("acele","main/ace_main","metrole", "ACE2风格"),
 	DIY("diy","main/diy","default","diy风格"),
-	HPLUS("hplus","main/hplus_main","metrole","H+风格");
-
+	HPLUS("hplus","main/hplus_main","metrole","H+风格"),
+	FINEUI_STYLE("fineui","main/fineui_main","metrole", "fineUI风格"),
+	ADMINLTE_STYLE("adminlte","main/adminlte_main","metrole","AdminLTE风格");
 
     /**
      * 风格
@@ -77,9 +81,15 @@ public enum SysThemesEnum {
 	}
 
 	public static SysThemesEnum toEnum(String style) {
+		//如果移动端访问，自动切换H+首页
+		if(isMobileDevice()){
+			return HPLUS;
+		}
+		
+		
 		if (StringUtil.isEmpty(style)) {
 			//默认风格
-			return HPLUS;
+			return FINEUI_STYLE;
         }
 		for(SysThemesEnum item : SysThemesEnum.values()) {
 			if(item.getStyle().equals(style)) {
@@ -87,10 +97,31 @@ public enum SysThemesEnum {
 			}
 		}
 		//默认风格
-		return HPLUS;
+		return FINEUI_STYLE;
 	}
 
     public String toString() {
         return "{style: " + style + ", indexPath: " + indexPath + ", themes: " + themes + ", desc: " + desc +"}";
     }
+    
+    /**
+	 * 判断是否是移动端
+     * android : 所有android设备
+     * mac os : iphone ipad
+     * windows phone:Nokia等windows系统的手机
+     */
+	private static boolean isMobileDevice(){
+		HttpServletRequest request = ContextHolderUtils.getRequest();
+		String requestHeader = request.getHeader("user-agent");
+        String[] deviceArray = new String[]{"android","mac os","windows phone"};
+        if(requestHeader == null)
+            return false;
+        requestHeader = requestHeader.toLowerCase();
+        for(int i=0;i<deviceArray.length;i++){
+            if(requestHeader.indexOf(deviceArray[i])>0){
+                return true;
+            }
+        }
+        return false;
+	}
 }

@@ -1,14 +1,11 @@
 package org.jeecgframework.web.system.pojo.base;
 
-import org.jeecgframework.poi.excel.annotation.Excel;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import javax.persistence.PrimaryKeyJoinColumn;
 import javax.persistence.Table;
+
+import org.jeecgframework.poi.excel.annotation.Excel;
 
 /**
  * 系统用户表
@@ -20,12 +17,26 @@ import javax.persistence.Table;
 public class TSUser extends TSBaseUser implements java.io.Serializable {
 	private static final long serialVersionUID = 1L;
 	private String signatureFile;// 签名文件
-	@Excel(name = "手机")
+	@Excel(name = "手机" ,width = 20)
 	private String mobilePhone;// 手机
-	@Excel(name = "办公电话")
+	@Excel(name = "办公电话",width = 20)
 	private String officePhone;// 办公电话
-	@Excel(name = "邮箱")
+	@Excel(name = "邮箱",width = 25)
 	private String email;// 邮箱
+	/**头像*/
+	private java.lang.String portrait;
+	/**开发权限标志*/
+	private java.lang.String devFlag;
+	
+	private String userType;//用户类型  1:系统用户 \2接口用户
+	private String personType;//人员类型
+	private String sex;//性别
+	private String empNo;//工号
+	private String citizenNo;//身份证号
+	private String fax;//传真
+	private String address;//联系地址
+	private String post;//邮编
+	private String memo;//备注
 	/**创建时间*/
 	private java.util.Date createDate;
 	/**创建人ID*/
@@ -38,6 +49,15 @@ public class TSUser extends TSBaseUser implements java.io.Serializable {
 	private java.lang.String updateBy;
 	/**修改人名称*/
 	private java.lang.String updateName;
+	
+	@Column(name = "dev_flag", length = 2)
+	public String getDevFlag() {
+		return devFlag;
+	}
+
+	public void setDevFlag(String devFlag) {
+		this.devFlag = devFlag;
+	}
 	@Column(name = "signatureFile", length = 100)
 	public String getSignatureFile() {
 		return this.signatureFile;
@@ -168,5 +188,143 @@ public class TSUser extends TSBaseUser implements java.io.Serializable {
 	 */
 	public void setUpdateName(java.lang.String updateName){
 		this.updateName = updateName;
+	}
+	@Column(name = "portrait", length = 100)
+	public String getPortrait() {
+		return portrait;
+	}
+
+	public void setPortrait(String portrait) {
+		this.portrait = portrait;
+	}
+	
+	@Column(name = "user_type")
+	public String getUserType() {
+		return userType;
+	}
+
+	public void setUserType(String userType) {
+		this.userType = userType;
+	}
+	
+	@Column(name = "person_type")
+	public String getPersonType() {
+		return personType;
+	}
+
+	public void setPersonType(String personType) {
+		this.personType = personType;
+	}
+
+	@Column(name = "sex")
+	public String getSex() {
+		return sex;
+	}
+
+	public void setSex(String sex) {
+		this.sex = sex;
+	}
+
+	@Column(name = "emp_no")
+	public String getEmpNo() {
+		return empNo;
+	}
+
+	public void setEmpNo(String empNo) {
+		this.empNo = empNo;
+	}
+
+	@Column(name = "citizen_no")
+	public String getCitizenNo() {
+		return citizenNo;
+	}
+
+	public void setCitizenNo(String citizenNo) {
+		this.citizenNo = citizenNo;
+	}
+
+	@Column(name = "fax")
+	public String getFax() {
+		return fax;
+	}
+
+	public void setFax(String fax) {
+		this.fax = fax;
+	}
+
+	@Column(name = "address")
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	@Column(name = "post")
+	public String getPost() {
+		return post;
+	}
+
+	public void setPost(String post) {
+		this.post = post;
+	}
+
+	@Column(name = "memo")
+	public String getMemo() {
+		return memo;
+	}
+
+	public void setMemo(String memo) {
+		this.memo = memo;
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("TSUser [signatureFile=");
+		builder.append(signatureFile);
+		builder.append(", mobilePhone=");
+		builder.append(mobilePhone);
+		builder.append(", officePhone=");
+		builder.append(officePhone);
+		builder.append(", email=");
+		builder.append(email);
+		builder.append(", createDate=");
+		builder.append(createDate);
+		builder.append(", createBy=");
+		builder.append(createBy);
+		builder.append(", createName=");
+		builder.append(createName);
+		builder.append(", updateDate=");
+		builder.append(updateDate);
+		builder.append(", updateBy=");
+		builder.append(updateBy);
+		builder.append(", updateName=");
+		builder.append(updateName);
+		builder.append(", portrait=");
+		builder.append(portrait);
+		builder.append(", devFlag=");
+		builder.append(devFlag);
+		builder.append(", userType=");
+		builder.append(userType);
+		builder.append(", personType=");
+		builder.append(personType);
+		builder.append(", sex=");
+		builder.append(sex);
+		builder.append(", empNo=");
+		builder.append(empNo);
+		builder.append(", citizenNo=");
+		builder.append(citizenNo);
+		builder.append(", fax=");
+		builder.append(fax);
+		builder.append(", address=");
+		builder.append(address);
+		builder.append(", post=");
+		builder.append(post);
+		builder.append(", memo=");
+		builder.append(memo);
+		builder.append("]");
+		return builder.toString();
 	}
 }

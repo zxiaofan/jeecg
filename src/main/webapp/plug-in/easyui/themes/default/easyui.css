@@ -103,6 +103,9 @@
 .panel-body {
   border-color: #95B8E7;
 }
+/*update--begin--author:zhangjiaqiang date:20170622 for:增加一个样式引用*/
+.north-header,
+/*update--end--author:zhangjiaqiang date:20170622 for:增加一个样式引用*/
 .panel-header {
   background-color: #E0ECFF;
   background: -webkit-linear-gradient(top,#EFF5FF 0,#E0ECFF 100%);
@@ -1596,7 +1599,9 @@ a:hover.l-btn-disabled {
 }
 .searchbox-inputtext{
 	border:#999 1px solid;
-	height:20px;
+	//update-begin--Author:scott--- Date:20180327---for：popup输入框样式高度在shortcut风格下太高问题处理----
+	//height:20px;
+	//update-end--Author:scott--- Date:20180327---for：popup输入框样式高度在shortcut风格下太高问题处理----
 	background:#fff url(images/searchbox_button.png) no-repeat right;
 }
 .searchbox-inputtext15{
@@ -2210,7 +2215,10 @@ a.s-btn-plain-active {
 	margin-left: 5px;
 	margin-right: 15px;
 	margin-top: 8px;
-	height: 62px;
+	/*height: 62px;*/
+    /*start 20160820 wangkun TASK #1295 【在线聊天功能样式冲突】h+风格样式冲突*/
+    height:71px;
+    /*end 20160820 wangkun TASK #1295 【在线聊天功能样式冲突】h+风格样式冲突*/
 	float: right;
 }
 .shortcut li{
@@ -2219,3 +2227,17 @@ a.s-btn-plain-active {
 	margin-right: 10px;
 	cursor: pointer;
 }
+/*update-begin--Author:xuelin  Date:20170624 for：TASK #2167 【技术研究】列表表头表头怎么换行-------------------- */
+.datagrid-header-row td .datagrid-cell{
+	height: inherit;
+    line-height: normal;
+}
+/*update-end--Author:xuelin  Date:20170624 for：TASK #2167 【技术研究】列表表头表头怎么换行---------------------- */
+/*update-begin--Author:scott  Date:20180628 for：shortcut风格下列表查询区域样式优化，上间距太小  -- */
+#searchColums, div[name="searchColums"] {
+    padding: 3px 0 3px 0;
+}
+form {
+    margin-bottom: 0em;
+}
+/*update-end--Author:scott  Date:20180628 for：shortcut风格下列表查询区域样式优化 ，上间距太小  -- */

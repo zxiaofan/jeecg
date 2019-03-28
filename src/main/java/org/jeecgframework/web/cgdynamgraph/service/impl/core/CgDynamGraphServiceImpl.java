@@ -10,13 +10,13 @@ import java.util.Set;
 import org.jeecgframework.core.common.dao.jdbc.JdbcDao;
 import org.jeecgframework.core.common.exception.BusinessException;
 import org.jeecgframework.core.common.service.impl.CommonServiceImpl;
+import org.jeecgframework.core.online.def.CgReportConstant;
 import org.jeecgframework.core.util.StringUtil;
 import org.jeecgframework.core.util.oConvertUtils;
 import org.jeecgframework.web.cgdynamgraph.dao.core.CgDynamGraphDao;
 import org.jeecgframework.web.cgdynamgraph.entity.core.CgDynamGraphConfigHeadEntity;
 import org.jeecgframework.web.cgdynamgraph.entity.core.CgDynamGraphConfigParamEntity;
 import org.jeecgframework.web.cgdynamgraph.service.core.CgDynamGraphServiceI;
-import org.jeecgframework.web.cgreport.common.CgReportConstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,10 +76,15 @@ public class CgDynamGraphServiceImpl extends CommonServiceImpl implements
 		}
 		
 		@SuppressWarnings("unchecked")
-		public List<Map<String, Object>> queryByCgDynamGraphSql(String sql, Map params) {
+		public List<Map<String, Object>> queryByCgDynamGraphSql(String sql, Map params,Map<String,Object> paramData) {
 			String querySql = getFullSql(sql,params);
 			List<Map<String,Object>> result = null;
-			result = jdbcDao.findForJdbc(querySql);
+
+			if(paramData!=null&&paramData.size()==0){
+				paramData = null;
+			}
+			result = jdbcDao.findForListMap(querySql, paramData);
+
 			return result;
 		}
 		/**
@@ -110,10 +115,15 @@ public class CgDynamGraphServiceImpl extends CommonServiceImpl implements
 		}
 		@SuppressWarnings("unchecked")
 		
-		public long countQueryByCgDynamGraphSql(String sql, Map params) {
+		public long countQueryByCgDynamGraphSql(String sql, Map params,Map<String,Object> paramData) {
 			String querySql = getFullSql(sql,params);
 			querySql = "SELECT COUNT(*) FROM ("+querySql+") t2";
-			long result = jdbcDao.findForLong(querySql,new HashMap(0));
+
+			if(paramData!=null&&paramData.size()==0){
+				paramData = null;
+			}
+			long result = jdbcDao.findForLong(querySql,paramData);
+
 			return result;
 		}
 		@SuppressWarnings( "unchecked" )

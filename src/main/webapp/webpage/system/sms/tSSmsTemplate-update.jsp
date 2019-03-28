@@ -5,10 +5,6 @@
  <head>
   <title>消息模本表</title>
   <t:base type="jquery,easyui,tools,DatePicker"></t:base>
-  <script type="text/javascript" src="plug-in/ckfinder/ckfinder.js"></script>
-  <script type="text/javascript">
-  //编写自定义JS代码
-  </script>
  </head>
  <body>
   <t:formvalid formid="formobj" dialog="true" usePlugin="password" layout="table" action="tSSmsTemplateController.do?doUpdate" tiptype="1">
@@ -27,13 +23,22 @@
 							</label>
 						</td>
 						<td class="value">
-									<t:dictSelect field="templateType" type="list"
-										typeGroupCode="msgTplType" 
-										defaultVal="${tSSmsTemplatePage.templateType}" 
-										hasLabel="false"  title="模板类型"
-										extendJson="{\"datatype\":\"*\"}" ></t:dictSelect>     
+									<t:dictSelect field="templateType" type="list" typeGroupCode="msgTplType" 
+										defaultVal="${tSSmsTemplatePage.templateType}" hasLabel="false"  title="模板类型" extendJson="{\"datatype\":\"*\"}" ></t:dictSelect>     
 							<span class="Validform_checktip"></span>
 							<label class="Validform_label" style="display: none;">模板类型</label>
+						</td>
+					</tr>
+					<tr>
+					<td align="right">
+						<label class="Validform_label">
+							模板CODE:
+						</label>
+					</td>
+					<td class="value">
+					     	 <input id="templateCode" name="templateCode" value='${tSSmsTemplatePage.templateCode}' type="text" style="width: 150px" class="inputxt"  datatype="*" >
+							<span class="Validform_checktip"></span>
+							<label class="Validform_label" style="display: none;">模板Code</label>
 						</td>
 					</tr>
 					<tr>
@@ -43,9 +48,7 @@
 							</label>
 						</td>
 						<td class="value">
-						     	 <input id="templateName" name="templateName" type="text" style="width: 150px" class="inputxt"  
-									               datatype="*"
-  value='${tSSmsTemplatePage.templateName}'>
+						     	 <input id="templateName" name="templateName" type="text" style="width: 200px" class="inputxt"  datatype="*"  value='${tSSmsTemplatePage.templateName}'>
 							<span class="Validform_checktip"></span>
 							<label class="Validform_label" style="display: none;">模板名称</label>
 						</td>
@@ -57,12 +60,23 @@
 							</label>
 						</td>
 						<td class="value">
-						  	 	<textarea id="templateContent" style="width:600px;" class="inputxt" rows="6" name="templateContent">${tSSmsTemplatePage.templateContent}</textarea>
+						  	 	<textarea id="templateContent" style="width:600px;;height:100px" class="inputxt" rows="6" name="templateContent">${tSSmsTemplatePage.templateContent}</textarea>
 							<span class="Validform_checktip"></span>
 							<label class="Validform_label" style="display: none;">模板内容</label>
 						</td>
 					</tr>
+					<tr>
+					<td align="right">
+						<label class="Validform_label">
+							模板测试JSON:
+						</label>
+					</td>
+					<td class="value">
+						  	 <textarea style="width:600px;height:100px" class="inputxt" rows="6" id="templateTestJson" name="templateTestJson">${tSSmsTemplatePage.templateTestJson}</textarea>
+							<span class="Validform_checktip"></span>
+							<label class="Validform_label" style="display: none;">模板测试JSON</label>
+						</td>
+				</tr>
 			</table>
 		</t:formvalid>
  </body>
-  <script src = "webpage/system/sms/tSSmsTemplate.js"></script>		

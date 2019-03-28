@@ -2,6 +2,7 @@ package org.jeecgframework.web.system.controller.core;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
 import org.jeecgframework.core.common.controller.BaseController;
 import org.jeecgframework.core.common.hibernate.qbc.CriteriaQuery;
@@ -13,10 +14,10 @@ import org.jeecgframework.core.util.MyBeanUtils;
 import org.jeecgframework.core.util.StringUtil;
 import org.jeecgframework.tag.core.easyui.TagUtil;
 import org.jeecgframework.web.system.pojo.base.MutiLangEntity;
+import org.jeecgframework.web.system.service.CacheServiceI;
 import org.jeecgframework.web.system.service.MutiLangServiceI;
 import org.jeecgframework.web.system.service.SystemService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -34,15 +35,14 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 @RequestMapping("/mutiLangController")
 public class MutiLangController extends BaseController {
-	/**
-	 * Logger for this class
-	 */
 	private static final Logger logger = Logger.getLogger(MutiLangController.class);
 
 	@Autowired
 	private MutiLangServiceI mutiLangService;
 	@Autowired
 	private SystemService systemService;
+	@Autowired
+	private CacheServiceI cacheService;
 
 	/**
 	 * 多语言列表 页面跳转
@@ -68,7 +68,7 @@ public class MutiLangController extends BaseController {
 		CriteriaQuery cq = new CriteriaQuery(MutiLangEntity.class, dataGrid);
 		// 查询条件组装器
 		org.jeecgframework.core.extend.hqlsearch.HqlGenerateUtil.installHql(cq, mutiLang, request.getParameterMap());
-		this.mutiLangService.getDataGridReturn(cq, true);
+		this.systemService.getDataGridReturn(cq, true);
 		TagUtil.datagrid(response, dataGrid);
 	}
 
@@ -84,7 +84,7 @@ public class MutiLangController extends BaseController {
 		AjaxJson j = new AjaxJson();
 		mutiLang = systemService.getEntity(MutiLangEntity.class, mutiLang.getId());
 		message = MutiLangUtil.paramDelSuccess("common.language");
-		mutiLangService.delete(mutiLang);
+		systemService.delete(mutiLang);
 		mutiLangService.initAllMutiLang();
 		systemService.addLog(message, Globals.Log_Type_DEL, Globals.Log_Leavel_INFO);
 		j.setMsg(message);
@@ -104,10 +104,10 @@ public class MutiLangController extends BaseController {
 		AjaxJson j = new AjaxJson();
 		if (StringUtil.isNotEmpty(mutiLang.getId())) {
 			message = MutiLangUtil.paramUpdSuccess("common.language");
-			MutiLangEntity t = mutiLangService.get(MutiLangEntity.class, mutiLang.getId());
+			MutiLangEntity t = systemService.get(MutiLangEntity.class, mutiLang.getId());
 			try {
 				MyBeanUtils.copyBeanNotNull2Bean(mutiLang, t);
-				mutiLangService.saveOrUpdate(t);
+				systemService.saveOrUpdate(t);
 				mutiLangService.initAllMutiLang();
 				systemService.addLog(message, Globals.Log_Type_UPDATE, Globals.Log_Leavel_INFO);
 			} catch (Exception e) {
@@ -123,7 +123,7 @@ public class MutiLangController extends BaseController {
 
 			if(StringUtil.isEmpty(message))
 			{
-				mutiLangService.save(mutiLang);
+				systemService.save(mutiLang);
 				message = MutiLangUtil.paramAddSuccess("common.language");
 				systemService.addLog(message, Globals.Log_Type_INSERT, Globals.Log_Leavel_INFO);
 			}
@@ -143,7 +143,7 @@ public class MutiLangController extends BaseController {
 	public ModelAndView addorupdate(MutiLangEntity mutiLang,
 			HttpServletRequest req) {
 		if (StringUtil.isNotEmpty(mutiLang.getId())) {
-			mutiLang = mutiLangService.getEntity(MutiLangEntity.class, mutiLang.getId());
+			mutiLang = systemService.getEntity(MutiLangEntity.class, mutiLang.getId());
 			req.setAttribute("mutiLangPage", mutiLang);
 			mutiLangService.putMutiLang(mutiLang);
 		}
@@ -162,6 +162,7 @@ public class MutiLangController extends BaseController {
 		AjaxJson j = new AjaxJson();
 		try {
 			mutiLangService.refleshMutiLangCach();
+			cacheService.clean();
 			message = mutiLangService.getLang("common.refresh.success");
 		} catch (Exception e) {
 			message = mutiLangService.getLang("common.refresh.fail");

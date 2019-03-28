@@ -12,6 +12,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.jeecgframework.core.annotation.Ehcache;
+import org.jeecgframework.core.common.service.impl.CommonServiceImpl;
+import org.jeecgframework.core.constant.Globals;
+import org.jeecgframework.core.util.ContextHolderUtils;
+import org.jeecgframework.core.util.MyBeanUtils;
+import org.jeecgframework.core.util.SqlInjectionUtil;
+import org.jeecgframework.core.util.StringUtil;
+import org.jeecgframework.core.util.oConvertUtils;
 import org.jeecgframework.web.cgform.common.CgAutoListConstant;
 import org.jeecgframework.web.cgform.dao.config.CgFormFieldDao;
 import org.jeecgframework.web.cgform.dao.config.CgFormVersionDao;
@@ -20,7 +30,6 @@ import org.jeecgframework.web.cgform.entity.config.CgFormHeadEntity;
 import org.jeecgframework.web.cgform.entity.config.CgSubTableVO;
 import org.jeecgframework.web.cgform.entity.enhance.CgformEnhanceJsEntity;
 import org.jeecgframework.web.cgform.exception.BusinessException;
-import org.jeecgframework.web.cgform.service.cgformftl.CgformFtlServiceI;
 import org.jeecgframework.web.cgform.service.config.CgFormFieldServiceI;
 import org.jeecgframework.web.cgform.service.config.CgFormIndexServiceI;
 import org.jeecgframework.web.cgform.service.config.DbTableHandleI;
@@ -30,23 +39,10 @@ import org.jeecgframework.web.cgform.service.impl.config.util.DbTableUtil;
 import org.jeecgframework.web.cgform.service.impl.config.util.ExtendJsonConvert;
 import org.jeecgframework.web.cgform.util.PublicUtil;
 import org.jeecgframework.web.system.pojo.base.TSOperation;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-import org.jeecgframework.core.annotation.Ehcache;
-import org.jeecgframework.core.common.service.impl.CommonServiceImpl;
-import org.jeecgframework.core.constant.Globals;
-import org.jeecgframework.core.util.ContextHolderUtils;
-import org.jeecgframework.core.util.MyBeanUtils;
-import org.jeecgframework.core.util.StringUtil;
-import org.jeecgframework.core.util.oConvertUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.hibernate4.SessionFactoryUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.sun.star.uno.RuntimeException;
 
 @Service("cgFormFieldService")
 @Transactional
@@ -62,12 +58,7 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 	//同步方式：强制同步
 	private static final String SYN_FORCE = "force";
 	@Autowired
-	@Qualifier("jdbcTemplate")
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
 	private CgFormVersionDao cgFormVersionDao;
-	@Autowired
-	private CgformFtlServiceI cgformFtlService;
 	@Autowired
 	private CgformEnhanceJsServiceI cgformEnhanceJsService;
 	@Autowired
@@ -86,7 +77,9 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 			}
 			column.setTable(t);
 			// 设置checkbox的值
-			PublicUtil.judgeCheckboxValue(column,"isNull,isShow,isShowList,isQuery,isKey");
+
+			PublicUtil.judgeCheckboxValue(column,"isNull,isShow,isShowList,isQuery,isKey,fieldMustInput");
+
 			if (oConvertUtils.isEmpty(column.getId())) {
 				databaseFieldIsChange = true;
 				this.save(column);
@@ -151,8 +144,10 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 		CgFormFieldEntity column;
 		for (int i = 0; i < cgFormHead.getColumns().size(); i++) {
 			column = cgFormHead.getColumns().get(i);
+
 			PublicUtil.judgeCheckboxValue(column,
-					"isNull,isShow,isShowList,isQuery,isKey");
+					"isNull,isShow,isShowList,isQuery,isKey,fieldMustInput");
+
 			column.setTable(cgFormHead);
 			this.save(column);
 		}
@@ -170,8 +165,10 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 		CgFormFieldEntity column;
 		for (int i = 0; i < cgFormHead.getColumns().size(); i++) {
 			column = cgFormHead.getColumns().get(i);
+
 			PublicUtil.judgeCheckboxValue(column,
-					"isNull,isShow,isShowList,isQuery,isKey");
+					"isNull,isShow,isShowList,isQuery,isKey,fieldMustInput");
+
 			column.setTable(cgFormHead);
 			this.save(column);
 		}
@@ -226,8 +223,7 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 				if (judgeTableIsExit(cgFormHead.getTableName())) {
 					// 更新表操作
 					DbTableProcess dbTableProcess = new DbTableProcess(getSession());
-					List<String> updateTable = dbTableProcess.updateTable(
-							cgFormHead, getSession());
+					List<String> updateTable = dbTableProcess.updateTable(cgFormHead, getSession());
 					for (String sql : updateTable) {
 						if(StringUtils.isNotEmpty(sql)){
 							this.executeSql(sql);
@@ -378,6 +374,12 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 	
 	public List<Map<String, Object>> getSubTableData(String mainTableName,
 			String subTableName, Object mainTableId) {
+
+		mainTableName = PublicUtil.replaceTableName(mainTableName);
+		subTableName = PublicUtil.replaceTableName(subTableName);
+		//data.put("tableName", tableName);
+
+		
 		StringBuilder sql1 = new StringBuilder("");
 		sql1.append("select f.* from cgform_field f ,cgform_head h");
 		sql1.append(" where f.table_id = h.id ");
@@ -385,6 +387,8 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 		sql1.append(" and f.main_table=? ");
 		List<Map<String, Object>> list = this.findForJdbc(sql1.toString(),
 				subTableName, mainTableName);
+
+		SqlInjectionUtil.filterContent(subTableName);
 
 		StringBuilder sql2 = new StringBuilder("");
 		sql2.append("select sub.* from ").append(subTableName).append(" sub ");
@@ -401,8 +405,7 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 			}
 		}
 		sql2.append(" and main.id= ? ");
-		List<Map<String, Object>> subTableDataList = this.findForJdbc(
-				sql2.toString(), mainTableId);
+		List<Map<String, Object>> subTableDataList = this.findForJdbc(sql2.toString(), mainTableId);
 		return subTableDataList;
 	}
 
@@ -425,22 +428,25 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 						.valueOf(mainE.getSubTableStr() == null ? "" : mainE
 								.getSubTableStr());
 				// step.5 判断是否已经存在于附表串
-				if (!subTableStr.contains(thisSubTable)) {
-					// step.6 追加到附表串
-					if (!StringUtil.isEmpty(subTableStr)) {
-						subTableStr += "," + thisSubTable;
-					} else {
-						subTableStr += thisSubTable;
-					}
-					mainE.setSubTableStr(subTableStr);
-					logger.info("--主表" + mainE.getTableName() + "的附表串："
-							+ mainE.getSubTableStr());
+				if(StringUtils.isNotBlank(subTableStr)){
+					String[] str=subTableStr.split(",");
+					if(!oConvertUtils.isIn(thisSubTable, str)){
+						if(!subTableStr.endsWith(",")){
+							subTableStr=subTableStr+",";
+						}
+						subTableStr=subTableStr+thisSubTable;
+					}					
+				}else{
+					subTableStr=thisSubTable;
 				}
+				mainE.setSubTableStr(subTableStr);
+				logger.info("--主表" + mainE.getTableName() + "的附表串："
+						+ mainE.getSubTableStr());
 				// step.7 更新主表的表配置
 				this.updateTable(mainE, "sign",false);
 			}
 		}
-		return true;
+ 		return true;
 	}
 
 	
@@ -466,16 +472,26 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 								.getSubTableStr());
 				// step.5 判断是否已经存在于附表串
 				if (subTableStr.contains(thisSubTable)) {
-					// step.6 剔除主表的附表串
-					if (subTableStr.contains(thisSubTable + ",")) {
-						subTableStr = subTableStr.replace(thisSubTable + ",",
-								"");
-					} else if(subTableStr.contains(","+thisSubTable)){
-						subTableStr = subTableStr.replace("," + thisSubTable,
-								"");
-					} else{
-						subTableStr = subTableStr.replace(thisSubTable,"");
+					String[] str=subTableStr.split(",");
+					for(int i=0;i<str.length;i++){
+						if(str[i].equals(thisSubTable)){
+							str[i]="";
+						}
 					}
+					StringBuffer name=new StringBuffer("");
+					for(int i=0;i<str.length;i++){
+						if(!str[i].equals("")){
+							name.append(str[i]);
+							name.append(",");
+						}
+					}
+
+					if(name.length()!=0){
+						subTableStr=name.substring(0, name.length()-1);
+					}else{
+						subTableStr=name.toString();
+					}
+
 					mainE.setSubTableStr(subTableStr);
 					logger.info("--主表" + mainE.getTableName() + "的附表串："
 							+ mainE.getSubTableStr());
@@ -564,52 +580,7 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 	public Map<String, Object> getFtlFormConfig(String tableName, String version) {
 		Map<String, Object> data = new HashMap<String, Object>();
 		Map<String, Object> field = new HashMap<String, Object>();
-		CgFormHeadEntity head = this.getCgFormHeadByTableName(tableName,
-				version);
-		data.put("head", head);
-		if (head.getJformType() == CgAutoListConstant.JFORM_TYPE_MAIN_TALBE) {
-			CgSubTableVO subtableVo = new CgSubTableVO();
-			String subTableStr = head.getSubTableStr();
-			if (StringUtils.isNotEmpty(subTableStr)) {
-				String[] subTables = subTableStr.split(",");
-				List<Map<String, Object>> subTalbeFieldList = new ArrayList<Map<String, Object>>();
-				List<Map<String, Object>> subTalbeHiddenFieldList = new ArrayList<Map<String, Object>>();
-				for (String subTable : subTables) {
-					subTalbeFieldList = this
-							.getCgFormFieldByTableName(subTable);
-					subTalbeHiddenFieldList = this
-							.getCgFormHiddenFieldByTableName(subTable);
-					CgFormHeadEntity subhead = this
-							.getCgFormHeadByTableName(subTable);
-					subtableVo = new CgSubTableVO();
-					subtableVo.setHead(subhead);
-					subtableVo.setFieldList(subTalbeFieldList);
-					subtableVo.setHiddenFieldList(subTalbeHiddenFieldList);
-					//--author：luobaoli---------date:20150613--------for: 将表单子表中extend_json属性json样式转为普通html样式
-					ExtendJsonConvert.json2HtmlForList(subTalbeFieldList, "extend_json");
-					//--author：luobaoli---------date:20150613--------for: 将表单子表中extend_json属性json样式转为普通html样式
-					field.put(subTable, subtableVo);
-				}
-			}
-		}
-		// 装载附表表单配置
-		data.put("field", field);
-		data.put("tableName", tableName);
-		List<Map<String, Object>> fieldList = null;
-		if (head.getJformType() == CgAutoListConstant.JFORM_TYPE_MAIN_TALBE) {
-			// 查询主表或单表表单配置
-			fieldList = this.getCgFormFieldByTableName(tableName);
-		} else {
-			Map<String, Object> cgformFtlEntity = cgformFtlService
-					.getCgformFtlByTableName(tableName);
-			if (cgformFtlEntity == null) {
-				// 查询主表或单表表单配置
-				fieldList = this.getCgFormFieldByTableName(tableName);
-			}
-		}
-		// 隐藏字段 剔除id
-		List<Map<String, Object>> hiddenFieldList = getCgFormHiddenFieldByTableName(tableName);
-		data.put("columnhidden", hiddenFieldList);
+
 		//处理一遍权限问题
 		Set<String> operationCodes = (Set<String>) ContextHolderUtils.getRequest().getAttribute(Globals.OPERATIONCODES);
 		Map<String,TSOperation> operationCodesMap = new HashMap<String, TSOperation>();
@@ -622,6 +593,64 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 				}
 			}
 		}
+
+		CgFormHeadEntity head = this.getCgFormHeadByTableName(tableName,
+				version);
+		data.put("head", head);
+		if (head.getJformType() == CgAutoListConstant.JFORM_TYPE_MAIN_TALBE) {
+			CgSubTableVO subtableVo = new CgSubTableVO();
+			String subTableStr = head.getSubTableStr();
+			if (StringUtils.isNotEmpty(subTableStr)) {
+				String[] subTables = subTableStr.split(",");
+
+				List<Map<String, Object>> subTalbeFieldFilterAuthList = new ArrayList<Map<String, Object>>();
+				List<Map<String, Object>> subTalbeFieldList = new ArrayList<Map<String, Object>>();
+				List<Map<String, Object>> subTalbeHiddenFieldList = new ArrayList<Map<String, Object>>();
+				List<Map<String, Object>> subTalbeHiddenFieldFilterAuthList = new ArrayList<Map<String, Object>>();
+				for (String subTable : subTables) {
+					subTalbeFieldList = this.getCgFormFieldByTableName(subTable);
+					subTalbeHiddenFieldList = this.getCgFormHiddenFieldByTableName(subTable);
+					subTalbeFieldFilterAuthList = this.getFieldListFilterAuth(subTable, subTalbeFieldList, operationCodesMap);
+					subTalbeHiddenFieldFilterAuthList = this.getHiddenFieldListFilterAuth(subTable, subTalbeFieldList, operationCodesMap);
+					subTalbeHiddenFieldList.addAll(subTalbeHiddenFieldFilterAuthList);
+					CgFormHeadEntity subhead = this.getCgFormHeadByTableName(subTable);
+					subtableVo = new CgSubTableVO();
+					subtableVo.setHead(subhead);
+					subtableVo.setFieldList(subTalbeFieldFilterAuthList);
+					subtableVo.setHiddenFieldList(subTalbeHiddenFieldList);
+
+					//--author：luobaoli---------date:20150613--------for: 将表单子表中extend_json属性json样式转为普通html样式
+					ExtendJsonConvert.json2HtmlForList(subTalbeFieldList, "extend_json");
+					//--author：luobaoli---------date:20150613--------for: 将表单子表中extend_json属性json样式转为普通html样式
+					field.put(subTable, subtableVo);
+				}
+			}
+		}
+		// 装载附表表单配置
+		data.put("field", field);
+
+		String tablename = PublicUtil.replaceTableName(tableName);
+		data.put("tableName", tablename);
+		//data.put("tableName", tableName);
+
+		List<Map<String, Object>> fieldList = null;
+		if (head.getJformType() == CgAutoListConstant.JFORM_TYPE_MAIN_TALBE) {
+			// 查询主表或单表表单配置
+			fieldList = this.getCgFormFieldByTableName(tableName);
+		} else {
+
+//			Map<String, Object> cgformFtlEntity = cgformFtlService
+//					.getCgformFtlByTableName(tableName);
+//			if (cgformFtlEntity == null) {
+				// 查询主表或单表表单配置
+				fieldList = this.getCgFormFieldByTableName(tableName);
+//			}
+
+		}
+		// 隐藏字段 剔除id
+		List<Map<String, Object>> hiddenFieldList = getCgFormHiddenFieldByTableName(tableName);
+		data.put("columnhidden", hiddenFieldList);
+		
 		if (fieldList != null) {
 			List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 			List<Map<String, Object>> textareaList = new ArrayList<Map<String, Object>>();
@@ -656,6 +685,41 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 		data.put("js_plug_in", jsCode);
 		return data;
 	}
+
+	private List<Map<String, Object>> getFieldListFilterAuth(String tableName,List<Map<String, Object>> subTalbeFieldList,Map<String,TSOperation> operationCodesMap) {
+		List<Map<String, Object>> list = new ArrayList<Map<String,Object>>();
+		for(Map<String, Object> map :subTalbeFieldList){
+			String key = tableName+"."+map.get("field_name");
+			if(operationCodesMap!=null&&operationCodesMap.containsKey(key)){
+				if(operationCodesMap.get(key).getOperationType() == 0){
+					continue;
+				} else {
+					list.add(map);
+					map.put("operationCodesReadOnly",true);
+				}
+			}else{
+				list.add(map);
+			}
+		}
+		return list;
+	}
+	
+	private List<Map<String, Object>> getHiddenFieldListFilterAuth(String tableName,List<Map<String, Object>> subTalbeFieldList,Map<String,TSOperation> operationCodesMap) {
+		List<Map<String, Object>> list = new ArrayList<Map<String,Object>>();
+		for(Map<String, Object> map :subTalbeFieldList){
+			String key = tableName+"."+map.get("field_name");
+			if(operationCodesMap!=null&&operationCodesMap.containsKey(key)){
+				if(operationCodesMap.get(key).getOperationType() == 0){
+					list.add(map);
+					continue;
+				} else {
+					map.put("operationCodesReadOnly",true);
+				}
+			}
+		}
+		return list;
+	}
+
 
 	/**
 	 * 根据tableName 获取表单配置 根据版本号缓存
@@ -722,4 +786,22 @@ public class CgFormFieldServiceImpl extends CommonServiceImpl implements
 		return result;
 	}
 
+	@Override
+	public int getByphysiceId(String id) {
+		return cgFormFieldDao.getByphysiceId(id);
+	}
+
+	@Override
+	public List<Map<String,Object>> getPeizhiCountByIds(List<CgFormHeadEntity> list) {
+		StringBuffer ids = new StringBuffer("");
+		for(CgFormHeadEntity temp:list){
+		        ids.append(",'"+temp.getId()+"'");		        
+		}
+
+		//该分类无数据
+		if (StringUtils.isBlank(ids.toString())) {
+			return new ArrayList<Map<String,Object>>();
+		}
+		return cgFormFieldDao.getPeizhiCountByIds(ids.toString().replaceFirst(",", ""));
+	}
 }

@@ -1,5 +1,8 @@
 package org.jeecgframework.web.system.controller.core;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -86,7 +89,7 @@ public class DynamicDataSourceController extends BaseController {
 		CriteriaQuery cq = new CriteriaQuery(DynamicDataSourceEntity.class, dataGrid);
 		//查询条件组装器
 		org.jeecgframework.core.extend.hqlsearch.HqlGenerateUtil.installHql(cq, dbSource, request.getParameterMap());
-		this.dynamicDataSourceService.getDataGridReturn(cq, true);
+		this.systemService.getDataGridReturn(cq, true);
 		TagUtil.datagrid(response, dataGrid);
 
 	}
@@ -104,7 +107,7 @@ public class DynamicDataSourceController extends BaseController {
 
 		message = MutiLangUtil.paramDelSuccess("common.datasource.manage");
 
-		dynamicDataSourceService.delete(dbSource);
+		systemService.delete(dbSource);
 		systemService.addLog(message, Globals.Log_Type_DEL, Globals.Log_Leavel_INFO);
 
 		j.setMsg(message);
@@ -124,13 +127,13 @@ public class DynamicDataSourceController extends BaseController {
 		AjaxJson j = new AjaxJson();
 		if (StringUtil.isNotEmpty(dbSource.getId())) {
 			message = MutiLangUtil.paramUpdSuccess("common.datasource.manage");
-			DynamicDataSourceEntity t = dynamicDataSourceService.get(DynamicDataSourceEntity.class, dbSource.getId());
+			DynamicDataSourceEntity t = systemService.get(DynamicDataSourceEntity.class, dbSource.getId());
 			try {
 				MyBeanUtils.copyBeanNotNull2Bean(dbSource, t);
 
 				t.setDbPassword(PasswordUtil.encrypt(t.getDbPassword(), t.getDbUser(), PasswordUtil.getStaticSalt()));
 
-				dynamicDataSourceService.saveOrUpdate(t);
+				systemService.saveOrUpdate(t);
 				dynamicDataSourceService.refleshCache();
 				systemService.addLog(message, Globals.Log_Type_UPDATE, Globals.Log_Leavel_INFO);
 			} catch (Exception e) {
@@ -146,7 +149,7 @@ public class DynamicDataSourceController extends BaseController {
 				e.printStackTrace();
 			}
 
-			dynamicDataSourceService.save(dbSource);
+			systemService.save(dbSource);
 			dynamicDataSourceService.refleshCache();
 			systemService.addLog(message, Globals.Log_Type_INSERT, Globals.Log_Leavel_INFO);
 		}
@@ -162,12 +165,15 @@ public class DynamicDataSourceController extends BaseController {
 	@RequestMapping(params = "addorupdate")
 	public ModelAndView addorupdate(DynamicDataSourceEntity dbSource, HttpServletRequest req) {
 		if (StringUtil.isNotEmpty(dbSource.getId())) {
-			dbSource = dynamicDataSourceService.getEntity(DynamicDataSourceEntity.class, dbSource.getId());
+			dbSource = systemService.getEntity(DynamicDataSourceEntity.class, dbSource.getId());
 
 			try {
 				//String result = PasswordUtil.decrypt(d.getDbPassword(), d.getDbUser(), PasswordUtil.getStaticSalt());
 				//System.out.println("==result"+result);
-				dbSource.setDbPassword(PasswordUtil.decrypt(dbSource.getDbPassword(), dbSource.getDbUser(), PasswordUtil.getStaticSalt()));//解密字符串,密文展示
+				//直接dbSource.setDbPassword hibernate会自动保存修改，数据库值随之改变，因此采用临时变量方式传递到页面
+				String showDbPassword = PasswordUtil.decrypt(dbSource.getDbPassword(), dbSource.getDbUser(), PasswordUtil.getStaticSalt());//解密dbPassword
+				req.setAttribute("showDbPassword", showDbPassword);
+				
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -185,7 +191,7 @@ public class DynamicDataSourceController extends BaseController {
     @RequestMapping(params = "getAll")
     @ResponseBody
     public List<ComboBox> getAll(){
-        List<DynamicDataSourceEntity> list= dynamicDataSourceService.getList(DynamicDataSourceEntity.class);
+        List<DynamicDataSourceEntity> list= systemService.getList(DynamicDataSourceEntity.class);
         List<ComboBox> comboBoxes=new ArrayList<ComboBox>();
         if(list!=null&&list.size()>0){
             for(DynamicDataSourceEntity entity:list){
@@ -198,9 +204,6 @@ public class DynamicDataSourceController extends BaseController {
         return  comboBoxes;
     }
 
-
-
-    //add-begin--Author:	jg_huangxg Date: 20150625 for：[bugfree号]根据字典表数据库类型获取数据源对象
 
     @RequestMapping(params = "getDynamicDataSourceParameter")
 	@ResponseBody
@@ -221,5 +224,40 @@ public class DynamicDataSourceController extends BaseController {
     	return j;
     }
 
-	//add-end--Author: jg_huangxg Date: 20150625 for：[bugfree号]根据字典表数据库类型获取数据源对象
+    @RequestMapping(params = "testConnection")
+	@ResponseBody
+    public AjaxJson testConnection(DynamicDataSourceEntity dbSource, HttpServletRequest request){
+    	AjaxJson j = new AjaxJson();
+    	Connection con = null;
+    	Map map = new HashMap();
+    	try {
+			Class.forName(dbSource.getDriverClass());//加载及注册JDBC驱动程序
+			//建立连接对象
+			con = DriverManager.getConnection(dbSource.getUrl(), dbSource.getDbUser(), dbSource.getDbPassword());
+			if(con!=null){
+				map.put("msg", "数据库连接成功!!");
+			}
+		} catch (ClassNotFoundException e) {
+			//e.printStackTrace();
+			logger.error(e.toString());
+			map.put("msg", "数据库连接失败!!");
+		} catch (SQLException e) {
+			//e.printStackTrace();
+			logger.error(e.toString());
+			map.put("msg", "数据库连接失败!!");
+		}finally{
+			try {
+				if(con!=null&&!con.isClosed()){
+					con.close();
+				}
+			} catch (SQLException e) {
+				//e.printStackTrace();
+				logger.error(e.toString());
+			}
+		}
+    	j.setObj(map);
+    	return j;
+    }
+
+    
 }

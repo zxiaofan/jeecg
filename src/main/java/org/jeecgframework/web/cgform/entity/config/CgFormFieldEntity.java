@@ -64,6 +64,11 @@ public class CgFormFieldEntity implements java.io.Serializable {
 	private java.lang.String fieldHref;
 	/**控件校验*/
 	private java.lang.String fieldValidType;
+	/**
+	 * 字段校验是否必填
+	 */
+	private String fieldMustInput;
+	
 	/**查询类型single(默认：单字段查询),group(范围查询)*/
 	private java.lang.String queryMode;
 	/**功能注释*/
@@ -94,10 +99,14 @@ public class CgFormFieldEntity implements java.io.Serializable {
 	private java.lang.String oldFieldName;
 	/**字段默认值*/
 	private java.lang.String fieldDefault;
-	//add-start--Author:luobaoli  Date:20150610 for：添加扩展参数字段
+
 	/**扩展参数**/
 	private java.lang.String extendJson;
-	//add-start--Author:luobaoli  Date:20150610 for：添加扩展参数字段
+
+	private String fillRuleCode;
+
+	
+	
 	
 	/**
 	 *方法: 取得java.lang.String
@@ -446,7 +455,7 @@ public class CgFormFieldEntity implements java.io.Serializable {
 	 *方法: 取得java.lang.String
 	 *@return: java.lang.String  控件校验
 	 */
-	@Column(name ="field_valid_type",nullable=true,length=10)
+	@Column(name ="field_valid_type",nullable=true,length=300)
 	public java.lang.String getFieldValidType() {
 		return fieldValidType;
 	}
@@ -552,7 +561,6 @@ public class CgFormFieldEntity implements java.io.Serializable {
 		this.fieldDefault = fieldDefault;
 	}
 
-	//add-start--Author:luobaoli  Date:20150610 for：添加扩展参数字段
 	@Column(name ="extend_json",nullable=true,length=500)
 	public java.lang.String getExtendJson() {
 		return extendJson;
@@ -561,5 +569,26 @@ public class CgFormFieldEntity implements java.io.Serializable {
 	public void setExtendJson(java.lang.String extendJson) {
 		this.extendJson = extendJson;
 	}
-	//add-end--Author:luobaoli  Date:20150610 for：添加扩展参数字段
+
+
+	@Column(name="field_must_input")
+	public String getFieldMustInput() {
+		return fieldMustInput;
+	}
+	
+	public void setFieldMustInput(String fieldMustInput) {
+		this.fieldMustInput = fieldMustInput;
+	}
+
+	@Column(name="fill_rule_code")
+	public String getFillRuleCode() {
+		return fillRuleCode;
+	}
+
+	public void setFillRuleCode(String fillRuleCode) {
+		this.fillRuleCode = fillRuleCode;
+	}
+
+	
+	
 }

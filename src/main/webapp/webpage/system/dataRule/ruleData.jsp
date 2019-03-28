@@ -14,27 +14,34 @@
 	<fieldset class="step">
         <div class="form">
             <label class="Validform_label"> 规则名称: </label>
-            <input name="ruleName" class="inputxt" value="${operation.ruleName}" datatype="s2-20">
+            <input name="ruleName" class="inputxt" value="${operation.ruleName}" datatype="s2-20" style="width: 280px;"/>
             <span class="Validform_checktip"> <t:mutiLang langKey="operatename.rang2to20"/></span>
         </div>
-      <div class="form">
+      <div class="form" <c:if test="${operation.ruleConditions=='USE_SQL_RULES'}">style="display:none;" </c:if>>
             <label class="Validform_label"> 规则字段: </label>
-            <input name="ruleColumn" class="inputxt" value="${operation.ruleColumn}">
+            <input name="ruleColumn" class="inputxt" value="${operation.ruleColumn}" style="width: 280px;"/>
         </div>
         <div class="form">
             <label class="Validform_label"> 条件规则: </label>
-            
-            
-            	<t:dictSelect field="ruleConditions" typeGroupCode="rulecon" hasLabel="false" defaultVal="${operation.ruleConditions}"></t:dictSelect>
-					
-    
+            <t:dictSelect id="ruleConditions" field="ruleConditions" typeGroupCode="rulecon" hasLabel="false" defaultVal="${operation.ruleConditions}"></t:dictSelect>
         </div>
            <input name="TSFunction.id" value="${functionId}" type="hidden">
          <div class="form">
             <label class="Validform_label"> 规则值: </label>
-            <input name="ruleValue" class="inputxt" value="${operation.ruleValue}">
+            <input name="ruleValue" class="inputxt" value="${operation.ruleValue}" style="width: 390px;"/>
         </div>
 	</fieldset>
 </t:formvalid>
+<script>
+$("#ruleConditions").change(function(){
+	if("USE_SQL_RULES" == $(this).val()){
+		var inp = $("input[name='ruleColumn']");
+		inp.parent("div").fadeOut();
+		inp.val("");
+	}else{
+		$("input[name='ruleColumn']").parent("div").show();
+	}
+});
+</script>
 </body>
 </html>

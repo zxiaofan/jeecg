@@ -7,6 +7,9 @@
 <t:base type="jquery,easyui,tools,DatePicker,autocomplete"></t:base>
 <script type="text/javascript" src="plug-in/easyui/portal/jquery.portal.js"></script>
 <link rel="stylesheet" type="text/css" href="plug-in/easyui/portal/portal.css">
+<!--add-start--Author:wangkun Date:20160813 for:内部聊天修改-->
+<%@include file="/context/layui.jsp"%>
+<!--add-end--Author:wangkun Date:20160813 for:内部聊天修改-->
 <link rel="shortcut icon" href="images/favicon.ico">
 <style type="text/css">
 a {
@@ -18,9 +21,11 @@ a:hover {
 	color: black;
 	text-decoration: none;
 }
+/*update-start--Author:zhangguoming  Date:20140622 for：左侧树调整：加大宽度、更换节点图标、修改选中颜色*/
 .tree-node-selected{
     background: #eaf2ff;
 }
+/*update-end--Author:zhangguoming  Date:20140622 for：左侧树调整：加大宽度、更换节点图标、修改选中颜色*/
 </style>
 <SCRIPT type="text/javascript">
 
@@ -160,11 +165,11 @@ a:hover {
                         <t:mutiLang langKey="common.change.password"/>
                     </div>
 					<div class="menu-sep"></div>
-                    <div onclick="openwindow('<t:mutiLang langKey="common.ssms.getSysInfos"/>','tSSmsController.do?getSysInfos')">
+                    <div onclick="createdetailwindow('<t:mutiLang langKey="common.ssms.getSysInfos"/>','tSSmsController.do?goMySmsList',800,400)">
                         <t:mutiLang langKey="common.ssms.getSysInfos"/>
                     </div>
                     <div class="menu-sep"></div>
-                    <div onclick="add('<t:mutiLang langKey="common.change.style"/>','userController.do?changestyle','',550,200)">
+                    <div onclick="add('<t:mutiLang langKey="common.change.style"/>','userController.do?changestyle','',550,250)">
                         <t:mutiLang langKey="common.my.style"/>
                     </div>
                     
@@ -192,6 +197,13 @@ a:hover {
 <div region="west" split="true" href="loginController.do?left" title="<t:mutiLang langKey="common.navegation"/>" style="width: 200px; padding: 1px;"></div>
 <!-- 中间-->
 <div id="mainPanle" region="center" style="overflow: hidden;">
+	<style type="text/css">  
+	<!--  
+	.proccess{display:none;background-color:#f2f2f2;border:0px solid;border-color:#009900;height:100%;line-height:600px;width:100%;text-align:center;margin:100;position:absolute;top:0;left:0;}  
+	.proccess b{vertical-align:middle;background:url(plug-in/layer/skin/default/loading-2.gif) no-repeat 0 center;padding-left:55px;display:inline-block;}  
+	-->  
+	</style> 
+	<div class="proccess" id="panelloadingDiv"><b>&nbsp;</b></div>
     <div id="maintabs" class="easyui-tabs" fit="true" border="false">
     <div class="easyui-tab" title="<t:mutiLang langKey="common.dash_board"/>" href="loginController.do?home" style="padding: 2px; overflow: hidden;"></div>
         <c:if test="${map=='1'}">

@@ -22,6 +22,17 @@ public final class Globals {
 	public static final Short User_Normal=1;//正常
 	public static final Short User_Forbidden=0;//禁用
 	public static final Short User_ADMIN=-1;//超级管理员
+
+	/**
+	 * 用户类型：1、系统类型用户
+	 */
+	public static final String USER_TYPE_SYSTEM = "1";
+	/**
+	 * 用户类型：2、接口类型用户
+	 *
+	 */
+	public static final String USER_TYPE_INTERFACE = "2";
+
 	
 	/**
 	 * 逻辑删除标记
@@ -69,12 +80,11 @@ public final class Globals {
 	  */
 	 public static final String Function_Order_ONE="ofun";//一级权限
 	 public static final String Function_Order_TWO="tfun";//二级权限
-
 	 /**
 	  * 权限类型
 	  */
-	 public static final Short Function_TYPE_PAGE=0;//页面（菜单：菜单类型）
-	 public static final Short Function_TYPE_FROM=1;//表单/或者弹出（菜单：访问类型）
+	 public static final Short Function_TYPE_PAGE=0;//菜单：菜单类型
+	 public static final Short Function_TYPE_FROM=1;//菜单：权限类型(权限使用，不作为菜单首页加载)
 	 /**
 	  * 没有勾选的操作code
 	  */
@@ -100,7 +110,6 @@ public final class Globals {
 	  * 数据权限 - 菜单数据规则sql
 	  */
 	 public static final String MENU_DATA_AUTHOR_RULE_SQL ="MENU_DATA_AUTHOR_RULE_SQL";
-
 	 /**
 	  * 新闻法规
 	  */
@@ -126,4 +135,10 @@ public final class Globals {
 			 BUTTON_AUTHORITY_CHECK = true;
 		 }
 	 }
+
+	 /**
+	  * rest接口 list最大当前条数
+	  */
+	 public static Integer MAX_PAGESIZE = 2000;	//条数
+
 }

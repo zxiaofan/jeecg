@@ -105,7 +105,7 @@ public class GlobalExceptionResolver implements HandlerExceptionResolver {
 				exceptionMessage = exceptionMessage.substring(0,WIRTE_DB_MAX_LENGTH);
 			}
 		}
-		systemService.addLog(exceptionMessage, LOG_LEVEL, LOG_OPT);
+		systemService.addLog(exceptionMessage, LOG_OPT,LOG_LEVEL);
 	}
 	/**
 	 * ajax异常处理并返回.
@@ -132,7 +132,10 @@ public class GlobalExceptionResolver implements HandlerExceptionResolver {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}finally{
-			pw.close();
+			try {
+				pw.close();
+			} catch (Exception e2) {
+			}
 		}
 		empty.clear();
 		return empty;

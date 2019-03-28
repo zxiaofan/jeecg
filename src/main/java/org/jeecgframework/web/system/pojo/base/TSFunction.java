@@ -12,8 +12,6 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.Formula;
 import org.jeecgframework.core.common.entity.IdEntity;
 
 /**
@@ -35,6 +33,8 @@ public class TSFunction extends IdEntity implements java.io.Serializable {
 	private String functionOrder;//菜单排序
 	private Short functionType;//菜单类型
 	private TSIcon TSIcon = new TSIcon();//菜单图标
+
+	private String functionIconStyle;//菜单图标样式
 
 	private TSIcon TSIconDesk;// 云桌面菜单图标
 
@@ -162,9 +162,12 @@ public class TSFunction extends IdEntity implements java.io.Serializable {
 
 	public boolean hasSubFunction(List<TSFunction> functions) {
 		for (TSFunction f : functions) {
-			if(f.getTSFunction().getId().equals(this.getId())){
-				return true;
+			if(f!=null && f.getTSFunction()!=null){
+				if(f.getTSFunction().getId().equals(this.getId())){
+					return true;
+				}
 			}
+			
 		}
 		return false;
 	}
@@ -263,5 +266,16 @@ public class TSFunction extends IdEntity implements java.io.Serializable {
 	public void setFunctionIframe(Short functionIframe) {
 		this.functionIframe = functionIframe;
 	}
+
+	@Column(name = "function_icon_style")
+	public String getFunctionIconStyle() {
+		return functionIconStyle;
+	}
+
+	public void setFunctionIconStyle(String functionIconStyle) {
+		this.functionIconStyle = functionIconStyle;
+	}
+
+	
 
 }

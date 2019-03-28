@@ -25,7 +25,6 @@ public class SqlUtil {
     public static final String ORACLE_SQL = "select * from (select row_.*,rownum rownum_ from ({0}) row_ where rownum <= {1}) where rownum_>{2}"; //oracle
     public static final String SQLSERVER_SQL = "select * from ( select row_number() over(order by tempColumn) tempRowNumber, * from (select top {1} tempColumn = 0, {0}) t ) tt where tempRowNumber > {2}"; //sqlserver
 
-    //add-begin--Author:luobaoli  Date:20150620 for：增加各个数据库获取表的SQL和获取指定表列的SQL
     /**
      * 获取所有表的SQL
      */
@@ -41,7 +40,7 @@ public class SqlUtil {
     public static final String POSTGRE_ALLCOLUMNS_SQL = "select table_name from information_schema.columns where table_name = {0}";
     public static final String ORACLE_ALLCOLUMNS_SQL = "select column_name from all_tab_columns where table_name ={0}";
     public static final String SQLSERVER_ALLCOLUMNS_SQL = "select name from syscolumns where id={0}";
-    //add-end--Author:luobaoli  Date:20150620 for：增加各个数据库获取表的SQL和获取指定表列的SQL
+
     /**
      * 获取全sql
      * @param sql
@@ -121,12 +120,15 @@ public class SqlUtil {
      */
     @SuppressWarnings("rawtypes")
 	public static String jeecgCreatePageSql(String dbKey,String sql,Map params, int page, int rows){
+
+    	sql = getFullSql(sql,params);
+
         int beginNum = (page - 1) * rows;
         String[] sqlParam = new String[3];
         sqlParam[0] = sql;
         sqlParam[1] = beginNum+"";
         sqlParam[2] = rows+"";
-        DynamicDataSourceEntity dynamicSourceEntity = ResourceUtil.dynamicDataSourceMap.get(dbKey);
+        DynamicDataSourceEntity dynamicSourceEntity = ResourceUtil.getCacheDynamicDataSourceEntity(dbKey);
         String databaseType = dynamicSourceEntity.getDbType();
         if(DATABSE_TYPE_MYSQL.equalsIgnoreCase(databaseType)){
             sql = MessageFormat.format(MYSQL_SQL, sqlParam);
@@ -152,8 +154,7 @@ public class SqlUtil {
         int selectDistinctIndex = sql.toLowerCase().indexOf("select distinct");
         return selectIndex + (selectDistinctIndex == selectIndex ? 15 : 6);
     }
-    
-    //add-begin--Author:luobaoli  Date:20150620 for：增加各个数据库获取表的SQL和获取指定表列的SQL
+
     public static String getAllTableSql(String dbType,String ... param){
     	if(StringUtil.isNotEmpty(dbType)){
 	    	if(dbType.equals(DATABSE_TYPE_MYSQL)){
@@ -183,5 +184,5 @@ public class SqlUtil {
     	}
     	return null;
     }
-    //add-end--Author:luobaoli  Date:20150620 for：增加各个数据库获取表的SQL和获取指定表列的SQL
+
 }

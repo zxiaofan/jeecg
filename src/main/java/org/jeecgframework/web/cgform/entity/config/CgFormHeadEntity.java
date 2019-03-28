@@ -9,12 +9,15 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 
+import org.apache.commons.lang.StringUtils;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.OrderBy;
+import org.jeecgframework.codegenerate.database.JeecgReadTable;
 
 /**   
  * @Title: Entity
@@ -87,20 +90,24 @@ public class CgFormHeadEntity implements java.io.Serializable {
 	private java.lang.String treeIdFieldname;
 	/**树形列表 菜单列名*/
 	private java.lang.String treeFieldname;
-	
-	//add-start--Author:luobaoli  Date:20150607 for：增加表单分类列
+
 	/**表单分类*/
 	private java.lang.String jformCategory;
-	//add-end--Author:luobaoli  Date:20150607 for：增加表单分类列
-	//add-start--Author:张忠亮  Date:20150618 for：增加表单模板选择
+
 	/**表单模板*/
 	private String formTemplate;
-	//add-end--Author:张忠亮  Date:20150618 for：增加表单模板选择
-	
-	//add-start--Author:scott Date:20160301 for：online表单移动样式单独配置
+
 	/**表单模板样式(移动端)*/
 	private String formTemplateMobile;
-	//add-end--Author:scott Date:20160301 for：online表单移动样式单独配置
+
+	/**表单类型，0为物理表，1为配置表*/
+	private String tableType;
+	/**配置表版本*/
+	private Integer tableVersion;
+	/**物理表id*/
+	private String physiceId;
+
+	
 	
 	/**
 	 *方法: 取得java.lang.String
@@ -437,6 +444,14 @@ public class CgFormHeadEntity implements java.io.Serializable {
 	public java.lang.String getTreeParentIdFieldName() {
 		return treeParentIdFieldName;
 	}
+	
+	@Transient
+	public java.lang.String getTreeParentIdFieldNamePage() {
+		if(StringUtils.isNotEmpty(treeParentIdFieldName)){
+			return JeecgReadTable.formatField(treeParentIdFieldName);
+		}
+		return "";
+	}
 
 	public void setTreeParentIdFieldName(java.lang.String treeParentIdFieldName) {
 		this.treeParentIdFieldName = treeParentIdFieldName;
@@ -455,6 +470,14 @@ public class CgFormHeadEntity implements java.io.Serializable {
 	public java.lang.String getTreeFieldname() {
 		return treeFieldname;
 	}
+	
+	@Transient
+	public java.lang.String getTreeFieldnamePage() {
+		if(StringUtils.isNotEmpty(treeFieldname)){
+			return JeecgReadTable.formatField(treeFieldname);
+		}
+		return "";
+	}
 
 	public void setTreeFieldname(java.lang.String treeFieldname) {
 		this.treeFieldname = treeFieldname;
@@ -471,7 +494,7 @@ public class CgFormHeadEntity implements java.io.Serializable {
 	public void setJformCategory(java.lang.String jformCategory) {
 		this.jformCategory = jformCategory;
 	}
-	//add-start--Author:张忠亮  Date:20150618 for：增加表单模板选择
+
 	@Column(name ="form_template",length=50)
 	public String getFormTemplate() {
 		return formTemplate;
@@ -480,7 +503,7 @@ public class CgFormHeadEntity implements java.io.Serializable {
 	public void setFormTemplate(String formTemplate) {
 		this.formTemplate = formTemplate;
 	}
-	//add-end--Author:张忠亮  Date:20150618 for：增加表单模板选择
+
 	@Column(name ="form_template_mobile",length=50)
 	public String getFormTemplateMobile() {
 		return formTemplateMobile;
@@ -488,6 +511,30 @@ public class CgFormHeadEntity implements java.io.Serializable {
 
 	public void setFormTemplateMobile(String formTemplateMobile) {
 		this.formTemplateMobile = formTemplateMobile;
+	}
+	@Column(name ="table_type",length=50)
+	public String getTableType() {
+		return tableType;
+	}
+
+	public void setTableType(String tableType) {
+		this.tableType = tableType;
+	}
+	@Column(name ="table_version",length=11)
+	public Integer getTableVersion() {
+		return tableVersion;
+	}
+
+	public void setTableVersion(Integer tableVersion) {
+		this.tableVersion = tableVersion;
+	}
+	@Column(name ="physice_id",length=32)
+	public String getPhysiceId() {
+		return physiceId;
+	}
+
+	public void setPhysiceId(String physiceId) {
+		this.physiceId = physiceId;
 	}
 	
 }

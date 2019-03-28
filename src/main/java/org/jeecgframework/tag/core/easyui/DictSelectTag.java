@@ -31,21 +31,25 @@ public class DictSelectTag extends TagSupport {
 
 	private static final long serialVersionUID = 1;
 	private String typeGroupCode; // 数据字典类型
-	private String field; // 选择表单的Name EAMPLE:<select name="selectName" id = ""
-							// />
+	private String field; // 选择表单的Name EAMPLE:<select name="selectName" id = ""/>
 	private String id; // 选择表单ID EAMPLE:<select name="selectName" id = "" />
 	private String defaultVal; // 默认值
 	private String divClass; // DIV样式
 	private String labelClass; // Label样式
 	private String title; // label显示值
-	private boolean hasLabel = true; // 是否显示label
+	private boolean hasLabel = false; // 是否显示label
 	private String type;// 控件类型select|radio|checkbox
 	private String dictTable;// 自定义字典表
 	private String dictField;// 自定义字典表的匹配字段-字典的编码值
 	private String dictText;// 自定义字典表的显示文本-字典的显示值
 	private String extendJson;//扩展参数
-
 	private String readonly;// 只读属性
+	private String dictCondition;//查询条件属性
+	private String datatype;//校验类型 validform，必须输入规则：*
+	
+	@Autowired
+	private static SystemService systemService;
+
     public String getReadonly() {
 		return readonly;
 	}
@@ -53,7 +57,6 @@ public class DictSelectTag extends TagSupport {
 		this.readonly = readonly;
 	}
 
-	private String dictCondition;
 	public String getDictCondition() {
 		return dictCondition;
 	}
@@ -61,8 +64,6 @@ public class DictSelectTag extends TagSupport {
 	public void setDictCondition(String dicCondition) {
 		this.dictCondition = dicCondition;
 	}
-
-	private String datatype;
 	public String getDatatype() {
 		return datatype;
 	}
@@ -70,10 +71,6 @@ public class DictSelectTag extends TagSupport {
 	public void setDatatype(String datatype) {
 		this.datatype = datatype;
 	}
-
-	@Autowired
-	private static SystemService systemService;
-
 	public int doStartTag() throws JspTagException {
 		return EVAL_PAGE;
 	}
@@ -90,6 +87,7 @@ public class DictSelectTag extends TagSupport {
 			try {
 				out.clear();
 				out.close();
+				end().setLength(0);
 			} catch (Exception e2) {
 			}
 		}
@@ -125,32 +123,29 @@ public class DictSelectTag extends TagSupport {
 			}else {
 				sb.append("<select name=\"" + field + "\"");
 
-				this.readonly(sb);
-
-				
 				//增加扩展属性
 				if (!StringUtils.isBlank(this.extendJson)) {
-					Gson gson = new Gson();
-					Map<String, String> mp = gson.fromJson(extendJson, Map.class);
-					for(Map.Entry<String, String> entry: mp.entrySet()) { 
-						sb.append(entry.getKey()+"=\"" + entry.getValue() + "\"");
-						} 
+
+					sb.append(this.getExtendJsonCommon(extendJson));
+
 				}
+
+				this.readonly(sb);
+
 				if (!StringUtils.isBlank(this.id)) {
 					sb.append(" id=\"" + id + "\"");
 				}
+				this.datatype(sb);
 				sb.append(">");
-
 				select("common.please.select", "", sb);
-
 				for (Map<String, Object> map : list) {
 					select(map.get("text").toString(), map.get("field").toString(), sb);
 				}
 				sb.append("</select>");
 			}
 		} else {
-			TSTypegroup typeGroup = ResourceUtil.allTypeGroups.get(this.typeGroupCode.toLowerCase());
-			List<TSType> types = ResourceUtil.allTypes.get(this.typeGroupCode.toLowerCase());
+			TSTypegroup typeGroup = ResourceUtil.getCacheTypeGroup(this.typeGroupCode.toLowerCase());
+			List<TSType> types = ResourceUtil.getCacheTypes(this.typeGroupCode.toLowerCase());
 			if (hasLabel) {
 				sb.append("<div class=\"" + divClass + "\">");
 				sb.append("<label class=\"" + labelClass + "\" >");
@@ -158,7 +153,7 @@ public class DictSelectTag extends TagSupport {
 			if (typeGroup != null) {
 				if (hasLabel) {
 					if (StringUtils.isBlank(this.title)) {
-						this.title = MutiLangUtil.getMutiLangInstance().getLang(typeGroup.getTypegroupname());
+						this.title = MutiLangUtil.getLang(typeGroup.getTypegroupname());
 					}
 					sb.append(this.title + ":");
 					sb.append("</label>");
@@ -178,25 +173,19 @@ public class DictSelectTag extends TagSupport {
 				} else {
 					sb.append("<select name=\"" + field + "\"");
 
-					this.readonly(sb);
-
-					
 					//增加扩展属性
 					if (!StringUtils.isBlank(this.extendJson)) {
-						Gson gson = new Gson();
-						Map<String, String> mp = gson.fromJson(extendJson, Map.class);
-						for(Map.Entry<String, String> entry: mp.entrySet()) { 
-							sb.append(" "+entry.getKey()+"=\"" + entry.getValue() + "\"");
-							} 
+						sb.append(this.getExtendJsonCommon(extendJson));
 					}
+
+					this.readonly(sb);
+
 					if (!StringUtils.isBlank(this.id)) {
 						sb.append(" id=\"" + id + "\"");
 					}
 					this.datatype(sb);
 					sb.append(">");
-
 					select("common.please.select", "", sb);
-
 					for (TSType type : types) {
 						select(type.getTypename(), type.getTypecode(), sb);
 					}
@@ -210,6 +199,33 @@ public class DictSelectTag extends TagSupport {
 
 		return sb;
 	}
+
+	private StringBuffer getExtendJsonCommon(String extendJson){
+		Gson gson = new Gson();
+		Map<String, String> mp = gson.fromJson(extendJson, Map.class);
+		StringBuffer sb=new StringBuffer();
+		sb.append(" ");
+		for(Map.Entry<String, String> entry: mp.entrySet()) { 
+			//判断select标签中是否含有style属性
+			if(entry.getKey().equals("style")){
+				//并且readonly属性不为空
+				if(StringUtils.isNotBlank(readonly) &&readonly.equals("readonly")){
+					//拼接Style属性
+					String entryValue = entry.getValue() + ";background-color:#eee;cursor:no-drop;";
+					//把拼接好的属性加入到sb字符串中
+					sb.append(entry.getKey()+"=\"" + entryValue + "\"");
+				}else{
+					//如果readonly属性为空，走原来的样式
+					sb.append(entry.getKey()+"=\"" + entry.getValue() + "\"");
+				}
+			}else{
+				//如果没有Style属性的话走原来的方法，readonly属性在下边readonly方法中已经默认添加了样式
+				sb.append(entry.getKey()+"=\"" + entry.getValue() + "\"");
+			}
+		}
+		return sb;
+	}
+
 	/**
 	 * 文本框方法
 	 * @param name
@@ -218,7 +234,7 @@ public class DictSelectTag extends TagSupport {
 	 */
 	private void text(String name, String code, StringBuffer sb) {
 		if (code.equals(this.defaultVal)) {
-			sb.append("<input name='"+field+"'"+" id='"+id+"' value='" + MutiLangUtil.getMutiLangInstance().getLang(name) + "' readOnly = 'readOnly' />");
+			sb.append("<input name='"+field+"'"+" id='"+id+"' value='" + MutiLangUtil.getLang(name) + "' readOnly = 'readOnly' />");
 		} else {
 		}
 	}
@@ -234,31 +250,25 @@ public class DictSelectTag extends TagSupport {
 	 * @param sb
 	 */
 	private void radio(String name, String code, StringBuffer sb) {
+
 		if (code.equals(this.defaultVal)) {
-			sb.append("<input type=\"radio\" name=\"" + field
-					+ "\" checked=\"checked\" value=\"" + code + "\"");
-			if (!StringUtils.isBlank(this.id)) {
-				sb.append(" id=\"" + id + "\"");
-			}
-
-			this.readonly(sb);
-
-
-			this.datatype(sb);
-			sb.append(" />");
+			sb.append("<input type=\"radio\" name=\"" + field + "\" checked=\"checked\" value=\"" + code + "\"");
 		} else {
-			sb.append("<input type=\"radio\" name=\"" + field + "\" value=\""
-					+ code + "\"");
-			if (!StringUtils.isBlank(this.id)) {
-				sb.append(" id=\"" + id + "\"");
-			}
-
-			this.readonly(sb);
-
-			this.datatype(sb);
-			sb.append(" />");
+			sb.append("<input type=\"radio\" name=\"" + field + "\" value=\""+ code + "\"");
 		}
-		sb.append(MutiLangUtil.getMutiLangInstance().getLang(name));
+		if (!StringUtils.isBlank(this.id)) {
+			sb.append(" id=\"" + id + "\"");
+		}
+
+		this.readonly(sb);
+
+		this.datatype(sb);
+		if (!StringUtils.isBlank(this.extendJson)) {
+			sb.append(this.getExtendJsonCommon(extendJson));
+		}
+		sb.append(" />");
+		sb.append(MutiLangUtil.getLang(name)+"&nbsp;&nbsp;");
+
 	}
 
 	/**
@@ -271,6 +281,11 @@ public class DictSelectTag extends TagSupport {
 	 * @param sb
 	 */
 	private void checkbox(String name, String code, StringBuffer sb) {
+
+		if(this.defaultVal==null){
+		       this.defaultVal="";
+		}
+
 		String[] values = this.defaultVal.split(",");
 		Boolean checked = false;
 		for (int i = 0; i < values.length; i++) {
@@ -281,30 +296,27 @@ public class DictSelectTag extends TagSupport {
 			}
 			checked = false;
 		}
+
 		if(checked){
 			sb.append("<input type=\"checkbox\" name=\"" + field
 					+ "\" checked=\"checked\" value=\"" + code + "\"");
-			if (!StringUtils.isBlank(this.id)) {
-				sb.append(" id=\"" + id + "\"");
-			}
-
-			this.readonly(sb);
-
-			this.datatype(sb);
-			sb.append(" />");
 		} else {
 			sb.append("<input type=\"checkbox\" name=\"" + field
 					+ "\" value=\"" + code + "\"");
-			if (!StringUtils.isBlank(this.id)) {
-				sb.append(" id=\"" + id + "\"");
-			}
-
-			this.readonly(sb);
-
-			this.datatype(sb);
-			sb.append(" />");
 		}
-		sb.append(MutiLangUtil.getMutiLangInstance().getLang(name));
+		if (!StringUtils.isBlank(this.id)) {
+			sb.append(" id=\"" + id + "\"");
+		}
+
+		this.readonly(sb);
+
+		this.datatype(sb);
+		if (!StringUtils.isBlank(this.extendJson)) {
+			sb.append(" "+this.getExtendJsonCommon(extendJson));
+		}
+		sb.append(" />");
+		sb.append(MutiLangUtil.getLang(name)+"&nbsp;&nbsp;");
+
 	}
 
 	/**
@@ -317,12 +329,22 @@ public class DictSelectTag extends TagSupport {
 	 * @param sb
 	 */
 	private void select(String name, String code, StringBuffer sb) {
+
 		if (code.equals(this.defaultVal)) {
-			sb.append(" <option value=\"" + code + "\" selected=\"selected\">");
+			if(StringUtils.isNotBlank(readonly) &&readonly.equals("readonly")){
+				sb.append(" <option style=\"display: none;\"  value=\"" + code + "\" selected=\"selected\">");
+			}else{
+				sb.append(" <option  value=\"" + code + "\" selected=\"selected\">");
+			}
 		} else {
-			sb.append(" <option value=\"" + code + "\">");
+			if(StringUtils.isNotBlank(readonly) &&readonly.equals("readonly")){
+				sb.append(" <option style=\"display: none;\" value=\"" + code + "\">");
+			}else{
+				sb.append(" <option  value=\"" + code + "\">");
+			}
 		}
-		sb.append(MutiLangUtil.getMutiLangInstance().getLang(name));
+
+		sb.append(MutiLangUtil.getLang(name));
 		sb.append(" </option>");
 	}
 
@@ -336,7 +358,7 @@ public class DictSelectTag extends TagSupport {
 				+ " as text from " + dictTable;
 
 	       if(dictCondition!=null){
-	           sql+=dictCondition;
+	           sql+=" "+dictCondition+" ";
 	       }
 
 		systemService = ApplicationContextUtil.getContext().getBean(
@@ -364,20 +386,25 @@ public class DictSelectTag extends TagSupport {
 	 * @return sb
 	 */
 	private StringBuffer readonly(StringBuffer sb){
-		if(!StringUtils.isBlank(readonly) &&readonly.equals("readonly")){
+
+		if(StringUtils.isNotBlank(readonly) &&readonly.equals("readonly")){
 			if ("radio".equals(type)) {
-				sb.append(" disable= \"disabled\" disabled=\"disabled\" ");
+				sb.append(" readonly=\"readonly\" style=\"background-color:#eee;cursor:no-drop;\" disabled=\"true\" ");
 			}
 			else if ("checkbox".equals(type)) {
-				sb.append(" disable= \"disabled\" disabled=\"disabled\" ");
+				sb.append(" readonly=\"readonly\" style=\"background-color:#eee;cursor:no-drop;\" disabled=\"true\" ");
 			}
 			else if ("text".equals(type)) {
-				
+			
 			} 
-			else {
-				sb.append(" disable= \"disabled\" disabled=\"disabled\" ");
+			else if("list".equals(type)){
+					sb.append(" readonly=\"readonly\" style=\"background-color:#eee;cursor:no-drop;\" ");
+						
+			}else{
+				sb.append(" readonly=\"readonly\" style=\"background-color:#eee;cursor:no-drop;\" ");
 			}
 		}
+
 		return sb;
 	}
 

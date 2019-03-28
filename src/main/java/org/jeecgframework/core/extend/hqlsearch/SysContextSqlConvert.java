@@ -1,7 +1,15 @@
 package org.jeecgframework.core.extend.hqlsearch;
 
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.jeecgframework.core.extend.hqlsearch.parse.vo.HqlRuleEnum;
+import org.jeecgframework.core.util.DateUtils;
 import org.jeecgframework.core.util.ResourceUtil;
+import org.jeecgframework.core.util.oConvertUtils;
 import org.jeecgframework.web.system.pojo.base.TSDataRule;
 
 /**
@@ -35,6 +43,12 @@ public class SysContextSqlConvert {
 		return "";
 		String sqlValue="";
 		HqlRuleEnum ruleEnum=HqlRuleEnum.getByValue(dataRule.getRuleConditions());
+
+		if(ruleEnum == HqlRuleEnum.SQL_RULES){
+			sqlValue +=" and ("+ getSqlRuleValue(dataRule.getRuleValue())+")";
+			return sqlValue;
+		}
+
 		//#{sys_user_code}%
 		String ValueTemp = dataRule.getRuleValue();
 		String moshi = "";
@@ -49,7 +63,7 @@ public class SysContextSqlConvert {
 			ValueTemp = ValueTemp;
 		}
 		String tempValue = null;
-		//---author:jg_xugj----start-----date:20151226--------for：#814 【数据权限】扩展支持写表达式，通过session取值
+
 		tempValue = ResourceUtil.converRuleValue(ValueTemp);
 
 		if(tempValue!=null){
@@ -88,6 +102,36 @@ public class SysContextSqlConvert {
 		
 		return sqlValue;
 	}
+
+	private static String getSqlRuleValue(String sqlRule){
+		try {
+			Set<String> varParams = getSqlRuleParams(sqlRule);
+			for(String var:varParams){
+				String tempValue = ResourceUtil.converRuleValue(var);
+				sqlRule = sqlRule.replace("#{"+var+"}",tempValue);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return sqlRule;
+	}
+	
+	private static Set<String> getSqlRuleParams(String sql) {
+		if(oConvertUtils.isEmpty(sql)){
+			return null;
+		}
+		Set<String> varParams = new HashSet<String>();
+		String regex = "\\#\\{\\w+\\}";
+		
+		Pattern p = Pattern.compile(regex);
+		Matcher m = p.matcher(sql);
+		while(m.find()){
+			String var = m.group();
+			varParams.add(var.substring(var.indexOf("{")+1,var.indexOf("}")));
+		}
+		return varParams;
+	}
+
 	
 	// /**
 	// *

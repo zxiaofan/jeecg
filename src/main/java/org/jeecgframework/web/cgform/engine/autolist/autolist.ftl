@@ -119,7 +119,7 @@ function createDataGrid${config_id}(){
 	$('#${config_id}List').<#if config_istree=="Y">treegrid<#else>datagrid</#if>('getPager').pagination({onBeforeRefresh:function(pageNumber, pageSize){ $(this).pagination('loading');$(this).pagination('loaded'); }});
 	//将没有权限的按钮屏蔽掉
 	<#list config_nolist as x>
-		$("#${config_id}Listtb").find("#${x}").hide();
+		$("#${config_id}Listtb").find("${x}").hide();
 	</#list>
 	}
 	//列表刷新
@@ -316,8 +316,14 @@ function createDataGrid${config_id}(){
 			if(val.field != 'opt'&&val.field != 'ck'){
 				fields+=val.field+',';
 			}
-		}); 
-		window.location.href = "excelTempletController.do?exportXls&tableName=${config_id}"+encodeURI(params+fields)
+		});
+        //update-begin--Author:dangzhenghui  Date:20170429 for：TASK #1906 【online excel】Online excel 导出功能改进
+        var id='&id=';
+        $.each($('#${config_id}List').datagrid('getSelections'), function(i, val){
+            id+=val.id+",";
+        });
+        window.location.href = "excelTempletController.do?exportXls&tableName=${config_id}"+encodeURI(params+fields+id)
+        //update-end--Author:dangzhenghui  Date:20170429 for：TASK #1906 【online excel】Online excel 导出功能改进
 	}
 	
 	
@@ -347,7 +353,7 @@ function createDataGrid${config_id}(){
 			<#if x['field_isQuery']=="Y">
 				<#if  (x['field_dictlist']?size >0)>
 					<select name = "${x['field_id']}"  style="width: 104px">
-					<option value = "">---请选择---</option>
+					<option value = ""></option>
 					<#list x['field_dictlist']  as xd>
 						<option value = "${xd['typecode']}">${xd['typename']}</option>
 					</#list>

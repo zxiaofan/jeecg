@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html>
  <head>
+  <base href="${basePath}/"/>
   <title></title>
   ${config_iframe}
   <script type="text/javascript">
@@ -13,8 +14,8 @@
 	//-->
 	</script>
  </head>
- <body style="overflow-y: hidden; overflow-x: hidden;" scroll="no">
-  <form id="formobj" action="cgFormBuildController.do?saveOrUpdate" name="formobj" method="post">
+ <body>
+  <form id="formobj" action="${basePath}/cgFormBuildController.do?saveOrUpdate" name="formobj" method="post">
 			<input type="hidden" id="btn_sub" class="btn_sub"/>
 			<input type="hidden" name="tableName" value="${tableName?if_exists?html}" >
 			<input type="hidden" name="id" value="${id?if_exists?html}" >
@@ -31,24 +32,24 @@
                     <td align="right" height="40" width="10%">
 						<span class="filedzt">* 客户编号</span>
                     </td>
-                    <td class="value" width="20%">
+                    <td class="value" width="25%">
 						<input name="custom_id" id="custom_id" datatype="*" class="inputxt" value="${data['${tableName}']['custom_id']?if_exists?html}" >
 						<span class="Validform_checktip"></span>
 						<label class="Validform_label" style="display: none;">客户编号</label>
                     </td>
-					<td align="right" height="40" width="10%">
+					<td align="right" height="40" width="5%">
 						<span class="filedzt">负责人</span>
                     </td>
-                    <td class="value" width="20%">
+                    <td class="value" width="25%">
 						<input name="header" id="header" datatype="*" class="inputxt" value="${data['${tableName}']['header']?if_exists?html}" >
 						<span class="Validform_checktip"></span>
 						<label class="Validform_label" style="display: none;">负责人</label>
                     </td>
-                    <td align="right" height="40" width="10%">
+                    <td align="right" height="40" width="5%">
 						<span class="filedzt">成立日期</span>
                     </td>
-                    <td class="value" width="30%">
-						<input name="establish_date" id="establish_date" datatype="*" class="Wdate" onClick="WdatePicker()"  value="${data['${tableName}']['establish_date']?if_exists?html}" >
+                    <td class="value" width="25%">
+						<input name="establish_date" id="establish_date" datatype="*" class="inputxt Wdate" onClick="WdatePicker()"  value="${data['${tableName}']['establish_date']?if_exists?html}" >
 						<span class="Validform_checktip"></span>
 						<label class="Validform_label" style="display: none;">成立日期</label>
                     </td>
@@ -262,15 +263,15 @@
 		}
 	   $(function(){
 		//查看模式情况下,删除和上传附件功能禁止使用
-		if(location.href.indexOf("load=detail")!=-1){
+		if(location.href.indexOf("goDetail.do")!=-1){
 			$(".jeecgDetail").hide();
 		}
 		
-		if(location.href.indexOf("mode=read")!=-1){
+		if(location.href.indexOf("goDetail.do")!=-1){
 			//查看模式控件禁用
 			$("#formobj").find(":input").attr("disabled","disabled");
 		}
-		if(location.href.indexOf("mode=onbutton")!=-1){
+		if(location.href.indexOf("goAddButton.do")!=-1||location.href.indexOf("goUpdateButton.do")!=-1){
 			//其他模式显示提交按钮
 			$("#sub_tr").show();
 		}

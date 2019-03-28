@@ -3,7 +3,7 @@
 <t:base type="jquery,easyui,tools,DatePicker"></t:base>
 <div class="easyui-layout" fit="true">
   <div region="center" style="padding:0px;border:0px">
-  <t:datagrid name="cgformTemplateList" checkbox="true" fitColumns="false" title="Online表单风格列表" actionUrl="cgformTemplateController.do?datagrid" idField="id" fit="true" queryMode="group">
+  <t:datagrid name="cgformTemplateList" checkbox="true" fitColumns="true" title="Online表单风格列表" actionUrl="cgformTemplateController.do?datagrid" idField="id" fit="true" queryMode="group">
    <t:dgCol title="主键"  field="id"  hidden="true"  queryMode="single"  width="120"></t:dgCol>
    <t:dgCol title="创建人名称"  field="createName"  hidden="true"  queryMode="single"  width="120"></t:dgCol>
    <t:dgCol title="创建人登录名称"  field="createBy"  hidden="true"  queryMode="single"  width="120"></t:dgCol>
@@ -15,12 +15,13 @@
    <t:dgCol title="所属公司"  field="sysCompanyCode"  hidden="true"  queryMode="single"  width="120"></t:dgCol>
    <t:dgCol title="表单风格名"  field="templateName"   query="true" queryMode="single"  width="120"></t:dgCol>
    <t:dgCol title="风格编码"  field="templateCode"   query="true" queryMode="single"  width="120"></t:dgCol>
-   <t:dgCol title="类型"   field="templateType"   query="true" queryMode="single" replace="单表_1,主子表_2" width="120"></t:dgCol>
-   <t:dgCol title="是否共享" hidden="true"  field="templateShare"   query="true" queryMode="single" dictionary="sf_yn" width="120"></t:dgCol>
-   <t:dgCol title="预览图"  field="templatePic"   image="true"  imageSize="40,40" queryMode="single"  width="120"></t:dgCol>
+   <t:dgCol title="类型"   field="templateType"   query="true" queryMode="single" replace="单表_1,主子表_2,通用模板_3" width="120"></t:dgCol>
+   <t:dgCol title="是否共享" hidden="true"  field="templateShare" query="false" queryMode="single" dictionary="sf_yn" width="120"></t:dgCol>
+    <t:dgCol title="是否激活"   field="status" replace="有效_1,无效_0"  query="true" queryMode="single"  width="120"></t:dgCol>
+   <t:dgCol title="预览图"  field="templatePic"   image="true"  imageSize="30,30" queryMode="single"  width="120"></t:dgCol>
    <t:dgCol title="风格描述"  field="templateComment"   query="true" queryMode="single"  width="120"></t:dgCol>
    <t:dgCol title="操作" field="opt" width="100"></t:dgCol>
-   <t:dgDelOpt title="删除" url="cgformTemplateController.do?doDel&id={id}" />
+   <t:dgDelOpt title="删除" url="cgformTemplateController.do?doDel&id={id}" urlclass="ace_button"  urlfont="fa-trash-o"/>
    <t:dgToolBar title="录入" icon="icon-add" url="cgformTemplateController.do?goAdd" funname="add" width="900" height="500"></t:dgToolBar>
    <t:dgToolBar title="编辑" icon="icon-edit" url="cgformTemplateController.do?goUpdate" funname="update" width="900" height="500"></t:dgToolBar>
    <t:dgToolBar title="批量删除"  icon="icon-remove" url="cgformTemplateController.do?doBatchDel" funname="deleteALLSelect"></t:dgToolBar>
@@ -34,7 +35,6 @@
   </t:datagrid>
   </div>
  </div>
- <script src = "webpage/jeecg/cgform/template/cgformTemplateList.js"></script>
  <script type="text/javascript">
  $(document).ready(function(){
  		//给时间控件加上样式

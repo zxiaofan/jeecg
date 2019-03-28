@@ -139,7 +139,7 @@ public class CategoryController extends BaseController {
 			TSCategoryEntity t = categoryService.get(TSCategoryEntity.class,
 					category.getId());
 
-			category.getParent().setCode("".equals(t.getParent().getCode())?null:t.getParent().getCode());
+			category.getParent().setCode(t.getParent()==null||"".equals(t.getParent().getCode())? null :t.getParent().getCode());
 
 			try {
 				MyBeanUtils.copyBeanNotNull2Bean(category, t);
@@ -237,7 +237,9 @@ public class CategoryController extends BaseController {
 		ComboTree tree = new ComboTree();
 		tree.setId(entity.getCode());
 		tree.setText(entity.getName());
-		tree.setIconCls(entity.getIcon().getIconClas());
+		if(entity.getIcon()!=null){
+			tree.setIconCls(entity.getIcon().getIconClas());
+		}
 		if (entity.getList() != null && entity.getList().size() > 0) {
 			List<ComboTree> comboTrees = new ArrayList<ComboTree>();
 			for (int i = 0; i < entity.getList().size(); i++) {

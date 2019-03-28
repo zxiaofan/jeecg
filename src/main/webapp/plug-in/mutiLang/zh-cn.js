@@ -8,7 +8,7 @@ var no = "否";
 var selectedlanguage = "请选择语言";
 var username = "用户名";
 var password = "密码";
-var foot = "(推荐使用IE8+,谷歌浏览器可以获得更快,更安全的页面响应速度) 技术支持：孙波 13912756186";
+var foot = "(推荐使用IE8+,谷歌浏览器可以获得更快,更安全的页面响应速度)";
 var confirmdeletethis = "确定删除该记录吗 ?";
 var confirmdelete = "删除确认";
 var confirmdeletema = "确定删除吗";	
@@ -77,6 +77,10 @@ var sqlParse = "SQL解析";
 var extendJson = "扩展参数";
 var extendJsonTip = "请输入json格式，调整表单字段的属性";
 /*add-end--Author:luobaoli  Date:20150611 for：增加扩展字段及相应提示的国际化描述*/
+
+/*add-start--Author:Yandong  Date:20180205 for：增加填值规则 */
+var fillRuleCode = "填值规则";
+/*add-end--Author:luobaoli  Date:20150611 for：增加填值规则*/
 
 var indexname = "索引名称";
 var indexfield = "索引栏位";
