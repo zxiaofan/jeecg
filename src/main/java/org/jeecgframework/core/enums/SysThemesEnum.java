@@ -12,7 +12,8 @@ import org.jeecgframework.core.util.StringUtil;
  */
 public enum SysThemesEnum {
 	
-	DEFAULT_STYLE("default","main/main","default", "经典风格"),
+	/*DEFAULT_STYLE("default","main/main","default", "经典风格"),*/
+	DEFAULT_STYLE("default","main/zxiaofan_main","default","H+风格"),
 	SHORTCUT_STYLE("shortcut","main/shortcut_main","default", "ShortCut风格"),
 	SLIDING_STYLE("sliding","main/sliding_main","default", "Sliding云桌面"),
 	ACE_STYLE("ace","main/ace_main","metro", "ACE平面风格"),
@@ -21,7 +22,7 @@ public enum SysThemesEnum {
 /*
 	HPLUS("hplus","main/hplus_main","metrole","H+风格"),
 */
-	HPLUS("hplus","main/zxiaofan_main","metrole","H+风格"),
+	HPLUS("hplus","main/main","metrole","H+风格修改为经典风格"),
 	FINEUI_STYLE("fineui","main/fineui_main","metrole", "fineUI风格"),
 	ADMINLTE_STYLE("adminlte","main/adminlte_main","metrole","AdminLTE风格");
 

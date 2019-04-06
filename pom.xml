@@ -23,8 +23,11 @@
 		<commons-dbcp.version>1.4</commons-dbcp.version>
 		<commons-pool.version>1.6</commons-pool.version>
 		<druid.version>1.1.9</druid.version>
-		<!-- mysql -->
+		<!-- mysql mysql5.7客户端使用5.x版本；mysql8.x客户端使用8.x版本-->
+<!--
         <mysql.version>5.1.27</mysql.version>
+-->
+        <mysql.version>8.0.13</mysql.version>
         <!-- sqlserver 2008 -->
         <sqlserver.version>4.0</sqlserver.version>
         <!-- oracle 11g -->
@@ -652,7 +655,7 @@
 				</configuration>
 			</plugin>
 			<!-- jetty插件 -->
-			<plugin>
+		<!--	<plugin>
 				<groupId>org.mortbay.jetty</groupId>
 				<artifactId>jetty-maven-plugin</artifactId>
 				<version>${jetty.version}</version>
@@ -672,7 +675,7 @@
 						</systemProperty>
 					</systemProperties>
 				</configuration>
-			</plugin>
+			</plugin>-->
 			<!-- 打包跳过单元测试 -->
 			<plugin>  
 		        <groupId>org.apache.maven.plugins</groupId>  
